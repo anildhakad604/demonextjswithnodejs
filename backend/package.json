@@ -2,7 +2,46 @@
   "name": "ecommerce-api",
   "version": "1.0.0",
   "type": "module",
-  "scripts": {"dev": "tsx watch src/server.ts", "build": "tsc", "start": "node dist/server.js"},
-  "dependencies": {"cors": "latest", "dotenv": "latest", "express": "latest"},
-  "devDependencies": {"@types/cors": "latest", "@types/express": "latest", "@types/node": "latest", "tsx": "latest", "typescript": "latest"}
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "prisma": "^6.19.3",
+    "razorpay": "^2.9.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.2.0",
+    "@types/node": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true
+  }
 }

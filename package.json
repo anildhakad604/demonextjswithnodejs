@@ -1,0 +1,16 @@
+{
+  "name": "next-node-ecommerce",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend"
+  },
+  "devDependencies": {
+    "@types/mssql": "^12.3.0",
+    "concurrently": "latest"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "mssql": "^12.7.0"
+  }
+}
