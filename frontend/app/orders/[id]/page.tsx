@@ -39,7 +39,7 @@ export default function OrderDetailPage() {
       <h2>Items</h2>
       {order.items.map((item) => (
         <div className="summary-row" key={item.id}>
-          <span>{item.name} × {item.quantity}</span>
+          <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
           <span>{formatINR(Number(item.price) * item.quantity)}</span>
         </div>
       ))}

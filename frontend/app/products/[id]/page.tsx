@@ -14,7 +14,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <h1>{product.name}</h1>
         <p>{product.description}</p>
         <div className="price">{formatINR(product.price)}</div>
-        <p>{product.stock > 0 ? `${product.stock} items in stock` : "Out of stock"}</p>
+        {product.sizes.length === 0 && (
+          <p>{product.stock > 0 ? `${product.stock} items in stock` : "Out of stock"}</p>
+        )}
         <AddToCartButton product={product} />
       </div>
     </main>

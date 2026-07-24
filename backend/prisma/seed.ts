@@ -55,6 +55,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
       stock: 20,
+      sizes: [
+        { size: "7", stock: 6 },
+        { size: "8", stock: 8 },
+        { size: "9", stock: 5 },
+        { size: "10", stock: 1 },
+      ],
     },
     {
       name: "Modern Wrist Watch",
@@ -95,6 +101,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1465453869711-7e174808ace9?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
       stock: 25,
+      sizes: [
+        { size: "7", stock: 7 },
+        { size: "8", stock: 9 },
+        { size: "9", stock: 9 },
+        { size: "10", stock: 0 },
+      ],
     },
     {
       name: "Colorblock Sneakers",
@@ -159,6 +171,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
       stock: 40,
+      sizes: [
+        { size: "S", stock: 12 },
+        { size: "M", stock: 15 },
+        { size: "L", stock: 10 },
+        { size: "XL", stock: 3 },
+      ],
     },
     {
       name: "Denim Jacket",
@@ -167,6 +185,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
       stock: 12,
+      sizes: [
+        { size: "S", stock: 4 },
+        { size: "M", stock: 5 },
+        { size: "L", stock: 3 },
+        { size: "XL", stock: 0 },
+      ],
     },
     {
       name: "Pullover Hoodie",
@@ -175,6 +199,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1632073143817-8cd5b2165e20?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
       stock: 17,
+      sizes: [
+        { size: "S", stock: 5 },
+        { size: "M", stock: 6 },
+        { size: "L", stock: 4 },
+        { size: "XL", stock: 2 },
+      ],
     },
     {
       name: "Slim Fit Jeans",
@@ -183,6 +213,12 @@ async function main() {
       image: "https://images.unsplash.com/photo-1714143136372-ddaf8b606da7?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
       stock: 20,
+      sizes: [
+        { size: "30", stock: 6 },
+        { size: "32", stock: 8 },
+        { size: "34", stock: 5 },
+        { size: "36", stock: 1 },
+      ],
     },
     {
       name: "Bomber Jacket",
@@ -208,7 +244,10 @@ async function main() {
 
   for (const p of products) {
     const slug = slugify(p.name);
-    await prisma.product.upsert({
+    const sizes = "sizes" in p ? p.sizes : undefined;
+    const stock = sizes ? sizes.reduce((sum, s) => sum + s.stock, 0) : p.stock;
+
+    const product = await prisma.product.upsert({
       where: { slug },
       update: {
         description: p.description,
@@ -222,10 +261,21 @@ async function main() {
         description: p.description,
         price: p.price,
         image: p.image,
-        stock: p.stock,
+        stock,
         categoryId: categoryRecords[p.category],
+        ...(sizes ? { sizes: { create: sizes } } : {}),
       },
     });
+
+    if (sizes) {
+      for (const s of sizes) {
+        await prisma.productSize.upsert({
+          where: { productId_size: { productId: product.id, size: s.size } },
+          update: {},
+          create: { productId: product.id, size: s.size, stock: s.stock },
+        });
+      }
+    }
   }
 
   const coupon = await prisma.coupon.upsert({

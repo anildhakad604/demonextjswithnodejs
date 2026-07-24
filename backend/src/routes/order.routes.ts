@@ -14,7 +14,13 @@ orderRouter.use(requireAuth);
 
 const createOrderSchema = z.object({
   items: z
-    .array(z.object({ productId: z.string().min(1), quantity: z.coerce.number().int().positive() }))
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        quantity: z.coerce.number().int().positive(),
+        size: z.string().optional(),
+      })
+    )
     .min(1),
   addressId: z.string().min(1),
   couponCode: z.string().optional(),
@@ -30,17 +36,36 @@ orderRouter.post(
     if (!address || address.userId !== userId) throw new ApiError(400, "Invalid address");
 
     const productIds = items.map((i) => i.productId);
-    const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { sizes: true },
+    });
 
     let subtotal = 0;
     const orderItemsData = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product || !product.isActive) throw new ApiError(400, `Product ${item.productId} is unavailable`);
-      if (product.stock < item.quantity) throw new ApiError(400, `Insufficient stock for ${product.name}`);
+
+      if (product.sizes.length > 0) {
+        if (!item.size) throw new ApiError(400, `Please select a size for ${product.name}`);
+        const productSize = product.sizes.find((s) => s.size === item.size);
+        if (!productSize) throw new ApiError(400, `Invalid size for ${product.name}`);
+        if (productSize.stock < item.quantity) {
+          throw new ApiError(400, `Insufficient stock for ${product.name} (size ${item.size})`);
+        }
+      } else if (product.stock < item.quantity) {
+        throw new ApiError(400, `Insufficient stock for ${product.name}`);
+      }
 
       const price = Number(product.price);
       subtotal += price * item.quantity;
-      return { productId: product.id, name: product.name, price, quantity: item.quantity };
+      return {
+        productId: product.id,
+        name: product.name,
+        size: product.sizes.length > 0 ? item.size : null,
+        price,
+        quantity: item.quantity,
+      };
     });
 
     let discount = 0;

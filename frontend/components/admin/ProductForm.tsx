@@ -11,6 +11,8 @@ import {
   type Product,
 } from "@/lib/api";
 
+type SizeRow = { size: string; stock: string };
+
 export default function ProductForm({ product }: { product?: Product }) {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -24,6 +26,11 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [hasSizes, setHasSizes] = useState((product?.sizes.length ?? 0) > 0);
+  const [sizes, setSizes] = useState<SizeRow[]>(
+    product?.sizes.map((s) => ({ size: s.size, stock: String(s.stock) })) ?? []
+  );
+
   useEffect(() => {
     getCategories().then((list) => {
       setCategories(list);
@@ -32,19 +39,49 @@ export default function ProductForm({ product }: { product?: Product }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function addSizeRow() {
+    setSizes((prev) => [...prev, { size: "", stock: "0" }]);
+  }
+  function updateSizeRow(index: number, patch: Partial<SizeRow>) {
+    setSizes((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  }
+  function removeSizeRow(index: number) {
+    setSizes((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (hasSizes) {
+      if (sizes.length === 0) return setError("Add at least one size, or turn off 'Sell by size'.");
+      const labels = sizes.map((s) => s.size.trim().toUpperCase());
+      if (labels.some((l) => !l)) return setError("Every size needs a label.");
+      if (new Set(labels).size !== labels.length) return setError("Size labels must be unique.");
+    }
+
     setSubmitting(true);
     try {
       const formData = new FormData();
       formData.set("name", name);
       formData.set("description", description);
       formData.set("price", price);
-      formData.set("stock", stock);
       formData.set("categoryId", categoryId);
       formData.set("isActive", String(isActive));
       if (image) formData.set("image", image);
+
+      if (hasSizes) {
+        formData.set(
+          "sizes",
+          JSON.stringify(sizes.map((s) => ({ size: s.size.trim(), stock: Number(s.stock) || 0 })))
+        );
+      } else {
+        formData.set("stock", stock);
+        if (product && product.sizes.length > 0) {
+          // Product previously had sizes — explicitly clear them since sizes are now off.
+          formData.set("sizes", JSON.stringify([]));
+        }
+      }
 
       if (product) await updateProduct(product.id, formData);
       else await createProduct(formData);
@@ -56,6 +93,8 @@ export default function ProductForm({ product }: { product?: Product }) {
       setSubmitting(false);
     }
   }
+
+  const totalSizeStock = sizes.reduce((sum, s) => sum + (Number(s.stock) || 0), 0);
 
   return (
     <form className="form form-wide" onSubmit={handleSubmit}>
@@ -73,10 +112,12 @@ export default function ProductForm({ product }: { product?: Product }) {
           <label>Price (₹)</label>
           <input required type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
         </div>
-        <div className="field">
-          <label>Stock</label>
-          <input required type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} />
-        </div>
+        {!hasSizes && (
+          <div className="field">
+            <label>Stock</label>
+            <input required type="number" min={0} value={stock} onChange={(e) => setStock(e.target.value)} />
+          </div>
+        )}
       </div>
       <div className="field">
         <label>Category</label>
@@ -95,6 +136,46 @@ export default function ProductForm({ product }: { product?: Product }) {
           <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Active
         </label>
       </div>
+
+      <div className="field">
+        <label>
+          <input type="checkbox" checked={hasSizes} onChange={(e) => setHasSizes(e.target.checked)} /> Sell by size
+        </label>
+      </div>
+
+      {hasSizes && (
+        <div>
+          {sizes.map((row, i) => (
+            <div className="form-row" key={i} style={{ alignItems: "flex-end", marginBottom: 8 }}>
+              <div className="field">
+                <label>Size label</label>
+                <input
+                  placeholder="S, M, L, 42..."
+                  value={row.size}
+                  onChange={(e) => updateSizeRow(i, { size: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label>Stock</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={row.stock}
+                  onChange={(e) => updateSizeRow(i, { stock: e.target.value })}
+                />
+              </div>
+              <button type="button" className="button button-danger button-sm" onClick={() => removeSizeRow(i)}>
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" className="button button-secondary button-sm" onClick={addSizeRow}>
+            + Add size
+          </button>
+          <p className="muted" style={{ marginTop: 8 }}>Total stock across sizes: {totalSizeStock}</p>
+        </div>
+      )}
+
       <button className="button" type="submit" disabled={submitting}>
         {submitting ? "Saving..." : product ? "Save changes" : "Create product"}
       </button>

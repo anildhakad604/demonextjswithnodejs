@@ -32,9 +32,28 @@ export async function fulfillPaidOrder(
         where: { id: item.productId },
         data: { stock: { decrement: item.quantity } },
       });
-      await tx.stockMovement.create({
-        data: { productId: item.productId, change: -item.quantity, reason: `Order ${order.id}` },
-      });
+
+      if (item.size) {
+        await tx.productSize.updateMany({
+          where: { productId: item.productId, size: item.size },
+          data: { stock: { decrement: item.quantity } },
+        });
+        const productSize = await tx.productSize.findFirst({
+          where: { productId: item.productId, size: item.size },
+        });
+        await tx.stockMovement.create({
+          data: {
+            productId: item.productId,
+            productSizeId: productSize?.id,
+            change: -item.quantity,
+            reason: `Order ${order.id}`,
+          },
+        });
+      } else {
+        await tx.stockMovement.create({
+          data: { productId: item.productId, change: -item.quantity, reason: `Order ${order.id}` },
+        });
+      }
     }
 
     if (order.couponId) {

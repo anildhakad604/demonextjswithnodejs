@@ -16,7 +16,7 @@ adminRouter.get(
       prisma.order.count(),
       prisma.user.count(),
       prisma.order.findMany({ where: { status: { in: ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"] } } }),
-      prisma.product.findMany({ select: { stock: true, lowStockThreshold: true } }),
+      prisma.product.findMany({ select: { stock: true, lowStockThreshold: true, sizes: { select: { stock: true } } } }),
       prisma.order.findMany({
         take: 10,
         orderBy: { createdAt: "desc" },
@@ -25,7 +25,11 @@ adminRouter.get(
     ]);
 
     const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
-    const lowStockProducts = allProducts.filter((p) => p.stock <= p.lowStockThreshold);
+    const lowStockProducts = allProducts.filter((p) =>
+      p.sizes.length > 0
+        ? p.sizes.some((s) => s.stock <= p.lowStockThreshold)
+        : p.stock <= p.lowStockThreshold
+    );
 
     return res.json({
       productCount,
@@ -87,9 +91,28 @@ adminRouter.patch(
       if (isCancelling && wasFulfilled) {
         for (const item of order.items) {
           await tx.product.update({ where: { id: item.productId }, data: { stock: { increment: item.quantity } } });
-          await tx.stockMovement.create({
-            data: { productId: item.productId, change: item.quantity, reason: `Order ${order.id} cancelled` },
-          });
+
+          if (item.size) {
+            await tx.productSize.updateMany({
+              where: { productId: item.productId, size: item.size },
+              data: { stock: { increment: item.quantity } },
+            });
+            const productSize = await tx.productSize.findFirst({
+              where: { productId: item.productId, size: item.size },
+            });
+            await tx.stockMovement.create({
+              data: {
+                productId: item.productId,
+                productSizeId: productSize?.id,
+                change: item.quantity,
+                reason: `Order ${order.id} cancelled`,
+              },
+            });
+          } else {
+            await tx.stockMovement.create({
+              data: { productId: item.productId, change: item.quantity, reason: `Order ${order.id} cancelled` },
+            });
+          }
         }
       }
     });

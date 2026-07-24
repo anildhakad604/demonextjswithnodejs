@@ -15,9 +15,12 @@ export default function CartPage() {
       ) : (
         <>
           {items.map((item) => (
-            <div className="cart-row" key={item.productId}>
+            <div className="cart-row" key={`${item.productId}::${item.size ?? ""}`}>
               <div>
-                <strong>{item.name}</strong>
+                <strong>
+                  {item.name}
+                  {item.size ? ` (${item.size})` : ""}
+                </strong>
                 <div>
                   Qty:{" "}
                   <input
@@ -26,13 +29,16 @@ export default function CartPage() {
                     min={1}
                     max={item.stock}
                     value={item.quantity}
-                    onChange={(e) => setQuantity(item.productId, Number(e.target.value))}
+                    onChange={(e) => setQuantity(item.productId, Number(e.target.value), item.size)}
                   />
                 </div>
               </div>
               <div>
                 <strong>{formatINR(Number(item.price) * item.quantity)}</strong>{" "}
-                <button className="button button-secondary button-sm" onClick={() => removeItem(item.productId)}>
+                <button
+                  className="button button-secondary button-sm"
+                  onClick={() => removeItem(item.productId, item.size)}
+                >
                   Remove
                 </button>
               </div>

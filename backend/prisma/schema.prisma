@@ -82,20 +82,41 @@ model Product {
 
   orderItems     OrderItem[]
   stockMovements StockMovement[]
+  sizes          ProductSize[]
 
   @@index([categoryId])
 }
 
-model StockMovement {
-  id        String   @id @default(uuid())
+/// A size variant of a product (e.g. S/M/L/XL, or a shoe size). Optional —
+/// a product with no rows here is sold without sizes, using Product.stock
+/// directly. A product with rows here is sold per-size; Product.stock is
+/// then ignored in favor of the sum of its sizes' stock.
+model ProductSize {
+  id        String @id @default(uuid())
   productId String
-  change    Int
-  reason    String
-  createdAt DateTime @default(now())
+  size      String
+  stock     Int    @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+
+  @@unique([productId, size])
+  @@index([productId])
+}
+
+model StockMovement {
+  id            String   @id @default(uuid())
+  productId     String
+  productSizeId String?
+  change        Int
+  reason        String
+  createdAt     DateTime @default(now())
+
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productSize ProductSize? @relation(fields: [productSizeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([productId])
+  @@index([productSizeId])
 }
 
 model Coupon {
@@ -145,6 +166,7 @@ model OrderItem {
   orderId   String
   productId String
   name      String
+  size      String?
   price     Decimal @db.Decimal(10, 2)
   quantity  Int
 

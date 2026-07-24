@@ -92,7 +92,11 @@ export default function CheckoutPage() {
     try {
       const finalAddressId = await ensureAddress();
       const order = await createOrder({
-        items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          size: item.size || undefined,
+        })),
         addressId: finalAddressId,
         couponCode: couponCode.trim() || undefined,
       });
@@ -214,8 +218,8 @@ export default function CheckoutPage() {
 
         <h2>Order Summary</h2>
         {items.map((item) => (
-          <div className="summary-row" key={item.productId}>
-            <span>{item.name} × {item.quantity}</span>
+          <div className="summary-row" key={`${item.productId}::${item.size ?? ""}`}>
+            <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
             <span>{formatINR(Number(item.price) * item.quantity)}</span>
           </div>
         ))}

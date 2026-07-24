@@ -9,6 +9,8 @@ export function resolveImage(src: string): string {
 
 export type Category = { id: string; name: string; slug: string };
 
+export type ProductSize = { id: string; size: string; stock: number };
+
 export type Product = {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ export type Product = {
   isActive: boolean;
   categoryId: string;
   category: Category;
+  sizes: ProductSize[];
   createdAt: string;
 };
 
@@ -41,7 +44,14 @@ export type Address = {
   isDefault: boolean;
 };
 
-export type OrderItem = { id: string; productId: string; name: string; price: string; quantity: number };
+export type OrderItem = {
+  id: string;
+  productId: string;
+  name: string;
+  size: string | null;
+  price: string;
+  quantity: number;
+};
 
 export type Order = {
   id: string;
@@ -157,7 +167,11 @@ export function validateCoupon(code: string, subtotal: number) {
 }
 
 // Orders
-export function createOrder(input: { items: { productId: string; quantity: number }[]; addressId: string; couponCode?: string }) {
+export function createOrder(input: {
+  items: { productId: string; quantity: number; size?: string }[];
+  addressId: string;
+  couponCode?: string;
+}) {
   return request<{ orderId: string; razorpayOrderId: string; amount: number; currency: string; keyId: string }>(
     "/orders",
     { method: "POST", body: JSON.stringify(input) }
@@ -226,6 +240,12 @@ export function deleteProduct(id: string) {
 }
 export function adjustStock(id: string, change: number, reason: string) {
   return request<Product>(`/products/${id}/stock`, { method: "POST", body: JSON.stringify({ change, reason }) });
+}
+export function adjustSizeStock(productId: string, sizeId: string, change: number, reason: string) {
+  return request<ProductSize>(`/products/${productId}/sizes/${sizeId}/stock`, {
+    method: "POST",
+    body: JSON.stringify({ change, reason }),
+  });
 }
 
 export function getAdminCoupons() {
