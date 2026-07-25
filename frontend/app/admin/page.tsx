@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAdminStats, type AdminStats } from "@/lib/api";
 import { formatINR } from "@/lib/format";
+import { RevenueIcon, OrdersIcon, BagIcon, UsersIcon, AlertIcon } from "@/components/admin/icons";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -12,17 +13,47 @@ export default function AdminDashboard() {
     getAdminStats().then(setStats).catch(() => undefined);
   }, []);
 
-  if (!stats) return <p>Loading...</p>;
+  if (!stats) return <p className="muted">Loading dashboard...</p>;
 
   return (
     <>
       <h1>Dashboard</h1>
       <div className="stat-grid">
-        <div className="stat-card"><div>Revenue</div><div className="value">{formatINR(stats.revenue)}</div></div>
-        <div className="stat-card"><div>Orders</div><div className="value">{stats.orderCount}</div></div>
-        <div className="stat-card"><div>Products</div><div className="value">{stats.productCount}</div></div>
-        <div className="stat-card"><div>Users</div><div className="value">{stats.userCount}</div></div>
-        <div className="stat-card"><div>Low stock</div><div className="value">{stats.lowStockCount}</div></div>
+        <div className="stat-card">
+          <span className="stat-icon stat-icon-indigo"><RevenueIcon /></span>
+          <div>
+            <div className="label">Revenue</div>
+            <div className="value">{formatINR(stats.revenue)}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon stat-icon-blue"><OrdersIcon /></span>
+          <div>
+            <div className="label">Orders</div>
+            <div className="value">{stats.orderCount}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon stat-icon-green"><BagIcon /></span>
+          <div>
+            <div className="label">Products</div>
+            <div className="value">{stats.productCount}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon stat-icon-indigo"><UsersIcon /></span>
+          <div>
+            <div className="label">Users</div>
+            <div className="value">{stats.userCount}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <span className="stat-icon stat-icon-amber"><AlertIcon /></span>
+          <div>
+            <div className="label">Low stock</div>
+            <div className="value">{stats.lowStockCount}</div>
+          </div>
+        </div>
       </div>
 
       <h2>Recent Orders</h2>
