@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -24,9 +25,14 @@ declare global {
 }
 
 export default function CheckoutPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, continueAsGuest } = useAuth();
   const { items, subtotal, clear } = useCart();
   const router = useRouter();
+
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestError, setGuestError] = useState<string | null>(null);
+  const [guestSubmitting, setGuestSubmitting] = useState(false);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressId, setAddressId] = useState("");
@@ -48,9 +54,18 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!authLoading && !user) router.push("/login?next=/checkout");
-  }, [authLoading, user, router]);
+  async function handleGuestContinue(e: React.FormEvent) {
+    e.preventDefault();
+    setGuestError(null);
+    setGuestSubmitting(true);
+    try {
+      await continueAsGuest(guestName, guestEmail);
+    } catch (err) {
+      setGuestError(err instanceof ApiRequestError ? err.message : "Unable to continue as guest");
+    } finally {
+      setGuestSubmitting(false);
+    }
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -132,12 +147,45 @@ export default function CheckoutPage() {
     }
   }
 
-  if (authLoading || !user) return <main className="container section">Loading...</main>;
+  if (authLoading) return <main className="container section">Loading...</main>;
+
   if (items.length === 0) {
     return (
       <main className="container section">
         <h1>Checkout</h1>
         <p>Your cart is empty.</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="container section auth-page">
+        <h1>Checkout</h1>
+        <form className="form" onSubmit={handleGuestContinue}>
+          {guestError && <p className="error-text">{guestError}</p>}
+          <p className="muted">Continue as a guest, or log in if you already have an account.</p>
+          <div className="field">
+            <label htmlFor="guestName">Full name</label>
+            <input id="guestName" required value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="guestEmail">Email</label>
+            <input
+              id="guestEmail"
+              type="email"
+              required
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+            />
+          </div>
+          <button className="button" type="submit" disabled={guestSubmitting}>
+            {guestSubmitting ? "Continuing..." : "Continue as Guest"}
+          </button>
+          <p className="muted">
+            Already have an account? <Link href="/login?next=/checkout">Login</Link>
+          </p>
+        </form>
       </main>
     );
   }

@@ -4,6 +4,8 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { requireParam } from "../lib/params.js";
+import { sendEmail } from "../lib/email.js";
+import { orderStatusEmail } from "../lib/emailTemplates.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin);
@@ -69,6 +71,50 @@ adminRouter.get(
   })
 );
 
+function csvField(value: unknown): string {
+  const str = String(value ?? "");
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+const exportOrdersQuerySchema = z.object({ status: z.string().optional() });
+
+adminRouter.get(
+  "/orders/export",
+  asyncHandler(async (req, res) => {
+    const { status } = exportOrdersQuerySchema.parse(req.query);
+    const where = status ? { status: status as never } : {};
+
+    const orders = await prisma.order.findMany({
+      where,
+      include: { items: true, user: { select: { name: true, email: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const header = ["Order ID", "Date", "Customer", "Email", "Status", "Items", "Subtotal", "Discount", "Shipping", "Total"];
+    const rows = orders.map((o) =>
+      [
+        o.id,
+        o.createdAt.toISOString(),
+        o.user.name,
+        o.user.email,
+        o.status,
+        o.items.map((i) => `${i.name}${i.size ? ` (${i.size})` : ""} x${i.quantity}`).join("; "),
+        o.subtotal.toString(),
+        o.discount.toString(),
+        o.shippingFee.toString(),
+        o.total.toString(),
+      ]
+        .map(csvField)
+        .join(",")
+    );
+    const csv = [header.map(csvField).join(","), ...rows].join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="orders-${Date.now()}.csv"`);
+    return res.send(csv);
+  })
+);
+
 const updateStatusSchema = z.object({
   status: z.enum(["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "FAILED"]),
 });
@@ -79,7 +125,10 @@ adminRouter.patch(
     const id = requireParam(req.params.id);
     const { status } = updateStatusSchema.parse(req.body);
 
-    const order = await prisma.order.findUnique({ where: { id }, include: { items: true } });
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true, user: { select: { email: true } } },
+    });
     if (!order) throw new ApiError(404, "Order not found");
 
     const wasFulfilled = ["PAID", "PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status);
@@ -116,6 +165,11 @@ adminRouter.patch(
         }
       }
     });
+
+    if (["PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"].includes(status)) {
+      const { subject, html } = orderStatusEmail({ id: order.id, total: order.total.toString() }, status);
+      await sendEmail({ to: order.user.email, subject, html });
+    }
 
     return res.json({ status });
   })

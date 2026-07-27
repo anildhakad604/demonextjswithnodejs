@@ -23,6 +23,7 @@ export default function Header() {
           <Link href="/">Home</Link>
           <Link href="/products">Products</Link>
           <Link href="/cart">Cart{count > 0 ? ` (${count})` : ""}</Link>
+          {!loading && user && <Link href="/wishlist">Wishlist</Link>}
           {!loading && user && <Link href="/orders">Orders</Link>}
           {!loading && user?.role === "ADMIN" && <Link href="/admin">Admin</Link>}
           {!loading && !user && <Link href="/login">Login</Link>}

@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   ApiRequestError,
   createProduct,
+  deleteProductImage,
   getCategories,
+  resolveImage,
   updateProduct,
   type Category,
   type Product,
+  type ProductImage,
 } from "@/lib/api";
 
 type SizeRow = { size: string; stock: string };
@@ -23,6 +26,8 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [categoryId, setCategoryId] = useState(product?.categoryId || "");
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [image, setImage] = useState<File | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [existingGallery, setExistingGallery] = useState<ProductImage[]>(product?.images ?? []);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -69,6 +74,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       formData.set("categoryId", categoryId);
       formData.set("isActive", String(isActive));
       if (image) formData.set("image", image);
+      for (const file of galleryFiles) formData.append("gallery", file);
 
       if (hasSizes) {
         formData.set(
@@ -128,9 +134,45 @@ export default function ProductForm({ product }: { product?: Product }) {
         </select>
       </div>
       <div className="field">
-        <label>Product image {product ? "(leave blank to keep current)" : ""}</label>
+        <label>Cover image {product ? "(leave blank to keep current)" : ""}</label>
         <input type="file" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)} required={!product} />
       </div>
+
+      <div className="field">
+        <label>Gallery photos (additional angles, up to 6)</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => setGalleryFiles(Array.from(e.target.files || []).slice(0, 6))}
+        />
+      </div>
+      {existingGallery.length > 0 && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {existingGallery.map((img) => (
+            <div key={img.id} style={{ textAlign: "center" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={resolveImage(img.url)}
+                alt=""
+                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, display: "block" }}
+              />
+              <button
+                type="button"
+                className="link-button"
+                style={{ fontSize: 12, color: "#c0392b", marginTop: 4 }}
+                onClick={async () => {
+                  if (!product) return;
+                  await deleteProductImage(product.id, img.id);
+                  setExistingGallery((prev) => prev.filter((i) => i.id !== img.id));
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="field">
         <label>
           <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Active

@@ -10,6 +10,7 @@ export function resolveImage(src: string): string {
 export type Category = { id: string; name: string; slug: string };
 
 export type ProductSize = { id: string; size: string; stock: number };
+export type ProductImage = { id: string; url: string; sortOrder: number };
 
 export type Product = {
   id: string;
@@ -24,8 +25,21 @@ export type Product = {
   categoryId: string;
   category: Category;
   sizes: ProductSize[];
+  images: ProductImage[];
   createdAt: string;
 };
+
+export type Review = {
+  id: string;
+  productId: string;
+  rating: number;
+  comment: string;
+  isApproved: boolean;
+  createdAt: string;
+  user: { name: string };
+  product?: { name: string; slug: string };
+};
+export type ReviewListResponse = { items: Review[]; averageRating: number; count: number };
 
 export type ProductListResponse = { items: Product[]; total: number; page: number; limit: number; totalPages: number };
 
@@ -81,6 +95,8 @@ export type Coupon = {
   expiresAt: string | null;
   isActive: boolean;
 };
+
+export type WishlistItem = { id: string; productId: string; createdAt: string; product: Product };
 
 export class ApiRequestError extends Error {
   status: number;
@@ -140,11 +156,23 @@ export function register(input: { name: string; email: string; password: string 
 export function login(input: { email: string; password: string }) {
   return request<User>("/auth/login", { method: "POST", body: JSON.stringify(input) });
 }
+export function guestCheckout(input: { name: string; email: string }) {
+  return request<User>("/auth/guest", { method: "POST", body: JSON.stringify(input) });
+}
 export function logout() {
   return request<void>("/auth/logout", { method: "POST" });
 }
 export function getMe() {
   return request<User>("/auth/me");
+}
+export function forgotPassword(email: string) {
+  return request<{ message: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+}
+export function resetPassword(token: string, password: string) {
+  return request<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+  });
 }
 
 // Addresses
@@ -266,4 +294,42 @@ export function updateCoupon(id: string, input: Partial<{ isActive: boolean }>) 
 }
 export function deleteCoupon(id: string) {
   return request<void>(`/coupons/${id}`, { method: "DELETE" });
+}
+
+export function deleteProductImage(productId: string, imageId: string) {
+  return request<void>(`/products/${productId}/images/${imageId}`, { method: "DELETE" });
+}
+
+// Reviews
+export function getProductReviews(productId: string) {
+  return request<ReviewListResponse>(`/products/${productId}/reviews`);
+}
+export function submitReview(productId: string, input: { rating: number; comment: string }) {
+  return request<Review>(`/products/${productId}/reviews`, { method: "POST", body: JSON.stringify(input) });
+}
+export function getMyReview(productId: string) {
+  return request<Review | null>(`/products/${productId}/reviews/me`);
+}
+export function deleteMyReview(productId: string) {
+  return request<void>(`/products/${productId}/reviews/me`, { method: "DELETE" });
+}
+export function getAdminReviews() {
+  return request<Review[]>("/admin/reviews");
+}
+export function moderateReview(id: string, isApproved: boolean) {
+  return request<Review>(`/admin/reviews/${id}`, { method: "PATCH", body: JSON.stringify({ isApproved }) });
+}
+export function deleteAdminReview(id: string) {
+  return request<void>(`/admin/reviews/${id}`, { method: "DELETE" });
+}
+
+// Wishlist
+export function getWishlist() {
+  return request<WishlistItem[]>("/wishlist");
+}
+export function addToWishlist(productId: string) {
+  return request<WishlistItem>("/wishlist", { method: "POST", body: JSON.stringify({ productId }) });
+}
+export function removeFromWishlist(productId: string) {
+  return request<void>(`/wishlist/${productId}`, { method: "DELETE" });
 }

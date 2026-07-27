@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAdminOrders, updateOrderStatus, type Order } from "@/lib/api";
+import { API_URL, getAdminOrders, updateOrderStatus, type Order } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 
 const STATUSES = ["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "FAILED"];
@@ -23,7 +23,17 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <h1>Orders</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>Orders</h1>
+        <a
+          className="button button-secondary button-sm"
+          href={`${API_URL}/admin/orders/export${filter ? `?status=${filter}` : ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Export CSV
+        </a>
+      </div>
       <div className="field" style={{ maxWidth: 240, marginBottom: 16 }}>
         <label>Filter by status</label>
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>

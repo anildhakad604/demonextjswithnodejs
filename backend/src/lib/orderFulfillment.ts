@@ -1,4 +1,6 @@
 import { prisma } from "./prisma.js";
+import { sendEmail } from "./email.js";
+import { orderConfirmationEmail } from "./emailTemplates.js";
 
 export type FulfillResult = "PAID" | "ALREADY_PAID" | "NOT_FOUND";
 
@@ -12,7 +14,10 @@ export async function fulfillPaidOrder(
   orderId: string,
   payment: { paymentId: string; signature?: string }
 ): Promise<FulfillResult> {
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true, user: { select: { email: true } } },
+  });
   if (!order) return "NOT_FOUND";
   if (order.status === "PAID") return "ALREADY_PAID";
 
@@ -60,6 +65,18 @@ export async function fulfillPaidOrder(
       await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
     }
   });
+
+  const { subject, html } = orderConfirmationEmail({
+    id: order.id,
+    total: order.total.toString(),
+    items: order.items.map((item) => ({
+      name: item.name,
+      size: item.size,
+      quantity: item.quantity,
+      price: item.price.toString(),
+    })),
+  });
+  await sendEmail({ to: order.user.email, subject, html });
 
   return "PAID";
 }

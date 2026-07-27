@@ -8,6 +8,7 @@ import { computeDiscount } from "./coupon.routes.js";
 import { requireParam } from "../lib/params.js";
 import { computeShippingFee } from "../lib/shipping.js";
 import { fulfillPaidOrder } from "../lib/orderFulfillment.js";
+import { orderLimiter } from "../middleware/rateLimit.js";
 
 export const orderRouter = Router();
 orderRouter.use(requireAuth);
@@ -28,6 +29,7 @@ const createOrderSchema = z.object({
 
 orderRouter.post(
   "/",
+  orderLimiter,
   asyncHandler(async (req, res) => {
     const { items, addressId, couponCode } = createOrderSchema.parse(req.body);
     const userId = req.user!.id;

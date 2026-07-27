@@ -9,6 +9,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
+  continueAsGuest: (name: string, email: string) => Promise<User>;
   logout: () => Promise<void>;
 };
 
@@ -38,13 +39,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return created;
   }, []);
 
+  const continueAsGuest = useCallback(async (name: string, email: string) => {
+    const created = await api.guestCheckout({ name, email });
+    setUser(created);
+    return created;
+  }, []);
+
   const logout = useCallback(async () => {
     await api.logout();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, login, register, continueAsGuest, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

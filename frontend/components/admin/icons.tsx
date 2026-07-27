@@ -103,3 +103,20 @@ export function StoreLinkIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ReviewsIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5 14.6 9l6 .87-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.4 9.87l6-.87L12 3.5Z" />
+    </svg>
+  );
+}
+
+export function HeartIcon(props: IconProps & { filled?: boolean }) {
+  const { filled, ...rest } = props;
+  return (
+    <svg {...base} {...rest} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 20.5s-7.5-4.6-9.8-9.1C.7 8 2.2 4.8 5.4 4.1c2-.4 3.9.5 5 2.1 1.1-1.6 3-2.5 5-2.1 3.2.7 4.7 3.9 3.2 7.3-2.3 4.5-9.8 9.1-9.8 9.1Z" />
+    </svg>
+  );
+}

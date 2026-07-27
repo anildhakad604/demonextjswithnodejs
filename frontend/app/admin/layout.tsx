@@ -10,6 +10,7 @@ import {
   CategoriesIcon,
   CouponsIcon,
   OrdersIcon,
+  ReviewsIcon,
   StoreLinkIcon,
 } from "@/components/admin/icons";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/admin/categories", label: "Categories", icon: CategoriesIcon },
   { href: "/admin/coupons", label: "Coupons", icon: CouponsIcon },
   { href: "/admin/orders", label: "Orders", icon: OrdersIcon },
+  { href: "/admin/reviews", label: "Reviews", icon: ReviewsIcon },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

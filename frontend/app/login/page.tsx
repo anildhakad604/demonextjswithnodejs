@@ -52,6 +52,9 @@ export default function LoginPage() {
           {submitting ? "Logging in..." : "Login"}
         </button>
         <p className="muted">
+          <Link href="/forgot-password">Forgot password?</Link>
+        </p>
+        <p className="muted">
           No account? <Link href="/register">Register</Link>
         </p>
       </form>

@@ -24,9 +24,24 @@ model User {
   addresses    Address[]
   orders       Order[]
   refreshTokens RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  reviews      Review[]
+  wishlistItems WishlistItem[]
 }
 
 model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    String
@@ -83,8 +98,54 @@ model Product {
   orderItems     OrderItem[]
   stockMovements StockMovement[]
   sizes          ProductSize[]
+  images         ProductImage[]
+  reviews        Review[]
+  wishlistedBy   WishlistItem[]
 
   @@index([categoryId])
+}
+
+/// Additional gallery photos beyond the required cover `image`.
+model ProductImage {
+  id        String @id @default(uuid())
+  productId String
+  url       String
+  sortOrder Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  productId  String
+  userId     String
+  rating     Int
+  comment    String
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
 
 /// A size variant of a product (e.g. S/M/L/XL, or a shoe size). Optional —

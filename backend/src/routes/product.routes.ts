@@ -58,7 +58,7 @@ productRouter.get(
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: { category: true, sizes: true },
+        include: { category: true, sizes: true, images: true },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
@@ -76,7 +76,7 @@ productRouter.get(
     const idOrSlug = requireParam(req.params.idOrSlug, "idOrSlug");
     const product = await prisma.product.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-      include: { category: true, sizes: true },
+      include: { category: true, sizes: true, images: true },
     });
     if (!product) throw new ApiError(404, "Product not found");
     return res.json(product);
@@ -94,15 +94,27 @@ const createProductSchema = z.object({
   sizes: z.string().optional(),
 });
 
+const productFiles = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "gallery", maxCount: 6 },
+]);
+
+function filesOf(req: import("express").Request, field: "image" | "gallery"): Express.Multer.File[] {
+  const files = req.files as Record<string, Express.Multer.File[]> | undefined;
+  return files?.[field] || [];
+}
+
 productRouter.post(
   "/",
   requireAuth,
   requireAdmin,
-  upload.single("image"),
+  productFiles,
   asyncHandler(async (req, res) => {
     const data = createProductSchema.parse(req.body);
     const sizes = parseSizes(data.sizes);
-    if (!req.file) throw new ApiError(400, "Product image is required");
+    const coverImage = filesOf(req, "image")[0];
+    if (!coverImage) throw new ApiError(400, "Product image is required");
+    const galleryFiles = filesOf(req, "gallery");
 
     const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
     if (!category) throw new ApiError(400, "Invalid category");
@@ -123,10 +135,13 @@ productRouter.post(
         categoryId: data.categoryId,
         lowStockThreshold: data.lowStockThreshold,
         isActive: data.isActive,
-        image: `/uploads/${req.file.filename}`,
+        image: `/uploads/${coverImage.filename}`,
         ...(sizes.length > 0 ? { sizes: { create: sizes } } : {}),
+        ...(galleryFiles.length > 0
+          ? { images: { create: galleryFiles.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i })) } }
+          : {}),
       },
-      include: { sizes: true, category: true },
+      include: { sizes: true, category: true, images: true },
     });
 
     if (sizes.length === 0 && data.stock > 0) {
@@ -145,12 +160,14 @@ productRouter.put(
   "/:id",
   requireAuth,
   requireAdmin,
-  upload.single("image"),
+  productFiles,
   asyncHandler(async (req, res) => {
     const id = requireParam(req.params.id);
     const data = updateProductSchema.parse(req.body);
     const existing = await prisma.product.findUnique({ where: { id }, include: { sizes: true } });
     if (!existing) throw new ApiError(404, "Product not found");
+    const coverImage = filesOf(req, "image")[0];
+    const galleryFiles = filesOf(req, "gallery");
 
     if (data.categoryId) {
       const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
@@ -202,13 +219,32 @@ productRouter.put(
         ...(data.categoryId ? { categoryId: data.categoryId } : {}),
         ...(data.lowStockThreshold !== undefined ? { lowStockThreshold: data.lowStockThreshold } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
-        ...(req.file ? { image: `/uploads/${req.file.filename}` } : {}),
+        ...(coverImage ? { image: `/uploads/${coverImage.filename}` } : {}),
         ...(stockOverride !== undefined ? { stock: stockOverride } : {}),
+        ...(galleryFiles.length > 0
+          ? { images: { create: galleryFiles.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i })) } }
+          : {}),
       },
-      include: { sizes: true, category: true },
+      include: { sizes: true, category: true, images: true },
     });
 
     return res.json(product);
+  })
+);
+
+productRouter.delete(
+  "/:id/images/:imageId",
+  requireAuth,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const id = requireParam(req.params.id);
+    const imageId = requireParam(req.params.imageId, "imageId");
+
+    const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+    if (!image || image.productId !== id) throw new ApiError(404, "Image not found");
+
+    await prisma.productImage.delete({ where: { id: imageId } });
+    return res.status(204).send();
   })
 );
 
