@@ -7,7 +7,11 @@
   },
   "devDependencies": {
     "@types/mssql": "^12.3.0",
-    "concurrently": "latest"
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "latest",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "dotenv": "^17.4.2",
