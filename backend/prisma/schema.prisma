@@ -3,14 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 /// Role: "USER" | "ADMIN"
 /// OrderStatus: "PENDING" | "PAID" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "FAILED"
 /// DiscountType: "PERCENTAGE" | "FIXED"
-/// SQL Server has no native enum support, so these are validated at the application layer (see src/types.ts).
+/// Stored as String and validated at the application layer (see src/types.ts).
 
 model User {
   id           String    @id @default(uuid())
