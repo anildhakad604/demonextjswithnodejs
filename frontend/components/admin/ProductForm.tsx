@@ -160,7 +160,7 @@ export default function ProductForm({ product }: { product?: Product }) {
               <button
                 type="button"
                 className="link-button"
-                style={{ fontSize: 12, color: "#c0392b", marginTop: 4 }}
+                style={{ fontSize: 12, color: "#a13d3d", marginTop: 4 }}
                 onClick={async () => {
                   if (!product) return;
                   await deleteProductImage(product.id, img.id);

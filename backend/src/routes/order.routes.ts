@@ -46,17 +46,22 @@ orderRouter.post(
     let subtotal = 0;
     const orderItemsData = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
-      if (!product || !product.isActive) throw new ApiError(400, `Product ${item.productId} is unavailable`);
+      if (!product || !product.isActive) {
+        throw new ApiError(400, `Product ${item.productId} is unavailable`, { productId: item.productId });
+      }
 
       if (product.sizes.length > 0) {
-        if (!item.size) throw new ApiError(400, `Please select a size for ${product.name}`);
+        if (!item.size) throw new ApiError(400, `Please select a size for ${product.name}`, { productId: item.productId });
         const productSize = product.sizes.find((s) => s.size === item.size);
-        if (!productSize) throw new ApiError(400, `Invalid size for ${product.name}`);
+        if (!productSize) throw new ApiError(400, `Invalid size for ${product.name}`, { productId: item.productId, size: item.size });
         if (productSize.stock < item.quantity) {
-          throw new ApiError(400, `Insufficient stock for ${product.name} (size ${item.size})`);
+          throw new ApiError(400, `Insufficient stock for ${product.name} (size ${item.size})`, {
+            productId: item.productId,
+            size: item.size,
+          });
         }
       } else if (product.stock < item.quantity) {
-        throw new ApiError(400, `Insufficient stock for ${product.name}`);
+        throw new ApiError(400, `Insufficient stock for ${product.name}`, { productId: item.productId });
       }
 
       const price = Number(product.price);

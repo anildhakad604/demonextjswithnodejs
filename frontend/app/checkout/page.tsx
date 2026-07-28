@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { useCurrency } from "@/lib/currency-context";
 import { formatINR } from "@/lib/format";
 import { computeShippingFee, FREE_SHIPPING_THRESHOLD } from "@/lib/shipping";
 import {
@@ -26,7 +27,8 @@ declare global {
 
 export default function CheckoutPage() {
   const { user, loading: authLoading, continueAsGuest } = useAuth();
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, clear, removeItem } = useCart();
+  const { currency, format } = useCurrency();
   const router = useRouter();
 
   const [guestName, setGuestName] = useState("");
@@ -85,7 +87,7 @@ export default function CheckoutPage() {
     try {
       const result = await validateCoupon(couponCode.trim(), subtotal);
       setDiscount(result.discount);
-      setCouponMessage(`Coupon applied: -${formatINR(result.discount)}`);
+      setCouponMessage(`Coupon applied: -${format(result.discount)}`);
     } catch (err) {
       setDiscount(0);
       setCouponMessage(err instanceof ApiRequestError ? err.message : "Invalid coupon");
@@ -94,6 +96,15 @@ export default function CheckoutPage() {
 
   async function ensureAddress(): Promise<string> {
     if (!showNewAddress && addressId) return addressId;
+    if (!showNewAddress && !addressId && addresses.length > 0) {
+      // Addresses loaded but none selected yet — pick the default or first one
+      const fallback = addresses.find((a) => a.isDefault) || addresses[0];
+      setAddressId(fallback.id);
+      return fallback.id;
+    }
+    if (showNewAddress && (!newAddress.line1 || !newAddress.city || !newAddress.postalCode)) {
+      throw new ApiRequestError(400, "Please fill in the required address fields (line 1, city, postal code)");
+    }
     const created = await createAddress({ ...newAddress, isDefault: addresses.length === 0 });
     setAddresses((prev) => [...prev, created]);
     setAddressId(created.id);
@@ -141,7 +152,12 @@ export default function CheckoutPage() {
       });
       razorpay.open();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Unable to start checkout");
+      if (err instanceof ApiRequestError && err.productId) {
+        removeItem(err.productId, err.size);
+        setError(`${err.message}. It has been removed from your cart — please review and try again.`);
+      } else {
+        setError(err instanceof ApiRequestError ? err.message : "Unable to start checkout");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -153,6 +169,7 @@ export default function CheckoutPage() {
     return (
       <main className="container section">
         <h1>Checkout</h1>
+        {error && <p className="error-text">{error}</p>}
         <p>Your cart is empty.</p>
       </main>
     );
@@ -268,7 +285,7 @@ export default function CheckoutPage() {
         {items.map((item) => (
           <div className="summary-row" key={`${item.productId}::${item.size ?? ""}`}>
             <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
-            <span>{formatINR(Number(item.price) * item.quantity)}</span>
+            <span>{format(Number(item.price) * item.quantity)}</span>
           </div>
         ))}
 
@@ -283,18 +300,23 @@ export default function CheckoutPage() {
           {couponMessage && <p className="muted">{couponMessage}</p>}
         </div>
 
-        <div className="summary-row"><strong>Subtotal</strong><span>{formatINR(subtotal)}</span></div>
-        {discount > 0 && <div className="summary-row"><strong>Discount</strong><span>-{formatINR(discount)}</span></div>}
+        <div className="summary-row"><strong>Subtotal</strong><span>{format(subtotal)}</span></div>
+        {discount > 0 && <div className="summary-row"><strong>Discount</strong><span>-{format(discount)}</span></div>}
         <div className="summary-row">
           <strong>Shipping</strong>
-          <span>{shippingFee === 0 ? "Free" : formatINR(shippingFee)}</span>
+          <span>{shippingFee === 0 ? "Free" : format(shippingFee)}</span>
         </div>
         {shippingFee > 0 && (
           <p className="muted">
-            Add {formatINR(FREE_SHIPPING_THRESHOLD - afterDiscount)} more for free shipping
+            Add {format(FREE_SHIPPING_THRESHOLD - afterDiscount)} more for free shipping
           </p>
         )}
-        <div className="summary-row"><strong>Total</strong><strong>{formatINR(total)}</strong></div>
+        <div className="summary-row"><strong>Total</strong><strong>{format(total)}</strong></div>
+        {currency !== "INR" && (
+          <p className="muted">
+            Shown in {currency} for reference — you&apos;ll be charged {formatINR(total)} (Indian Rupees) at checkout.
+          </p>
+        )}
 
         <button className="button" onClick={handlePlaceOrder} disabled={submitting} style={{ marginTop: 16 }}>
           {submitting ? "Processing..." : `Pay ${formatINR(total)}`}

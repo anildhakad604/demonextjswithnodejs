@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getOrder, type Order, ApiRequestError } from "@/lib/api";
-import { formatINR } from "@/lib/format";
+import { useCurrency } from "@/lib/currency-context";
 
 export default function OrderDetailPage() {
   const { user, loading } = useAuth();
+  const { format } = useCurrency();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [order, setOrder] = useState<Order | null>(null);
@@ -40,19 +41,19 @@ export default function OrderDetailPage() {
       {order.items.map((item) => (
         <div className="summary-row" key={item.id}>
           <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
-          <span>{formatINR(Number(item.price) * item.quantity)}</span>
+          <span>{format(Number(item.price) * item.quantity)}</span>
         </div>
       ))}
 
-      <div className="summary-row"><strong>Subtotal</strong><span>{formatINR(order.subtotal)}</span></div>
+      <div className="summary-row"><strong>Subtotal</strong><span>{format(order.subtotal)}</span></div>
       {Number(order.discount) > 0 && (
-        <div className="summary-row"><strong>Discount</strong><span>-{formatINR(order.discount)}</span></div>
+        <div className="summary-row"><strong>Discount</strong><span>-{format(order.discount)}</span></div>
       )}
       <div className="summary-row">
         <strong>Shipping</strong>
-        <span>{Number(order.shippingFee) === 0 ? "Free" : formatINR(order.shippingFee)}</span>
+        <span>{Number(order.shippingFee) === 0 ? "Free" : format(order.shippingFee)}</span>
       </div>
-      <div className="summary-row"><strong>Total</strong><strong>{formatINR(order.total)}</strong></div>
+      <div className="summary-row"><strong>Total</strong><strong>{format(order.total)}</strong></div>
 
       <h2>Shipping Address</h2>
       <p>

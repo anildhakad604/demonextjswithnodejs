@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { formatINR } from "@/lib/format";
+import { useCurrency } from "@/lib/currency-context";
 
 export default function CartPage() {
   const { items, removeItem, setQuantity, subtotal } = useCart();
+  const { format } = useCurrency();
 
   return (
     <main className="container section">
@@ -34,7 +35,7 @@ export default function CartPage() {
                 </div>
               </div>
               <div>
-                <strong>{formatINR(Number(item.price) * item.quantity)}</strong>{" "}
+                <strong>{format(Number(item.price) * item.quantity)}</strong>{" "}
                 <button
                   className="button button-secondary button-sm"
                   onClick={() => removeItem(item.productId, item.size)}
@@ -44,7 +45,7 @@ export default function CartPage() {
               </div>
             </div>
           ))}
-          <h2>Total: {formatINR(subtotal)}</h2>
+          <h2>Total: {format(subtotal)}</h2>
           <Link className="button" href="/checkout">Proceed to Checkout</Link>
         </>
       )}

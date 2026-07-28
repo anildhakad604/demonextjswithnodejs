@@ -1,14 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import CurrencySwitcher from "@/components/CurrencySwitcher";
 
 export default function Header() {
   const { user, loading, logout } = useAuth();
   const { count } = useCart();
   const router = useRouter();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 12);
+    }
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   async function handleLogout() {
     await logout();
@@ -16,7 +28,7 @@ export default function Header() {
   }
 
   return (
-    <header className="header">
+    <header className={`header ${scrolled ? "header-scrolled" : ""}`}>
       <div className="container nav">
         <Link className="brand" href="/">NovaShop</Link>
         <nav className="links">
@@ -32,6 +44,7 @@ export default function Header() {
               Logout ({user.name})
             </button>
           )}
+          <CurrencySwitcher />
         </nav>
       </div>
     </header>

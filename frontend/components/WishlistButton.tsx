@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useWishlist } from "@/lib/wishlist-context";
@@ -10,6 +11,7 @@ export default function WishlistButton({ productId, className }: { productId: st
   const { isWishlisted, toggle } = useWishlist();
   const router = useRouter();
   const active = isWishlisted(productId);
+  const [popping, setPopping] = useState(false);
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -19,6 +21,8 @@ export default function WishlistButton({ productId, className }: { productId: st
       return;
     }
     toggle(productId);
+    setPopping(true);
+    setTimeout(() => setPopping(false), 400);
   }
 
   return (
@@ -26,7 +30,7 @@ export default function WishlistButton({ productId, className }: { productId: st
       type="button"
       onClick={handleClick}
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
-      className={`wishlist-btn ${active ? "active" : ""} ${className || ""}`}
+      className={`wishlist-btn ${active ? "active" : ""} ${popping ? "pop" : ""} ${className || ""}`}
     >
       <HeartIcon filled={active} />
     </button>

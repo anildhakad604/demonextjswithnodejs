@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getMyOrders, type Order } from "@/lib/api";
-import { formatINR } from "@/lib/format";
+import { useCurrency } from "@/lib/currency-context";
 
 export default function OrdersPage() {
   const { user, loading } = useAuth();
+  const { format } = useCurrency();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
@@ -50,7 +51,7 @@ export default function OrdersPage() {
                 <td><Link href={`/orders/${order.id}`}>#{order.id.slice(0, 8)}</Link></td>
                 <td>{new Date(order.createdAt).toLocaleDateString("en-IN")}</td>
                 <td>{order.items.length}</td>
-                <td>{formatINR(order.total)}</td>
+                <td>{format(order.total)}</td>
                 <td><span className={`badge badge-${order.status}`}>{order.status}</span></td>
               </tr>
             ))}

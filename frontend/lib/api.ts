@@ -100,9 +100,13 @@ export type WishlistItem = { id: string; productId: string; createdAt: string; p
 
 export class ApiRequestError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  productId?: string;
+  size?: string;
+  constructor(status: number, message: string, productId?: string, size?: string) {
     super(message);
     this.status = status;
+    this.productId = productId;
+    this.size = size;
   }
 }
 
@@ -125,7 +129,9 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
   if (response.status === 204) return undefined as T;
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new ApiRequestError(response.status, data.message || "Request failed");
+  if (!response.ok) {
+    throw new ApiRequestError(response.status, data.message || "Request failed", data.productId, data.size);
+  }
   return data as T;
 }
 

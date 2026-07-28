@@ -1,8 +1,8 @@
 import AddToCartButton from "@/components/AddToCartButton";
+import PriceTag from "@/components/PriceTag";
 import ProductGallery from "@/components/ProductGallery";
 import ProductReviews from "@/components/ProductReviews";
 import { getProduct } from "@/lib/api";
-import { formatINR } from "@/lib/format";
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +15,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <small>{product.category?.name}</small>
           <h1>{product.name}</h1>
           <p>{product.description}</p>
-          <div className="price">{formatINR(product.price)}</div>
+          <div className="price"><PriceTag value={product.price} /></div>
           {product.sizes.length === 0 && (
             <p>{product.stock > 0 ? `${product.stock} items in stock` : "Out of stock"}</p>
           )}

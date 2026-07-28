@@ -89,7 +89,16 @@ function ProductsPageInner() {
       </div>
 
       {loading ? (
-        <p className="muted">Loading products...</p>
+        <div className="grid">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div className="skeleton-card" key={i}>
+              <div className="skeleton skeleton-img" />
+              <div className="skeleton skeleton-line short" />
+              <div className="skeleton skeleton-line" />
+              <div className="skeleton skeleton-line price" />
+            </div>
+          ))}
+        </div>
       ) : products.length === 0 ? (
         <p className="muted">No products match your search.</p>
       ) : (
