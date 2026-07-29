@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import ContentBlockEditor from "@/components/admin/ContentBlockEditor";
 import ProductForm from "@/components/admin/ProductForm";
 import { getProduct, type Product } from "@/lib/api";
 
@@ -19,6 +20,7 @@ export default function EditProductPage() {
     <>
       <h1>Edit Product</h1>
       <ProductForm product={product} />
+      <ContentBlockEditor productId={product.id} initialBlocks={product.contentBlocks ?? []} />
     </>
   );
 }

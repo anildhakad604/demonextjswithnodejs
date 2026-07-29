@@ -12,6 +12,18 @@ export type Category = { id: string; name: string; slug: string };
 export type ProductSize = { id: string; size: string; stock: number };
 export type ProductImage = { id: string; url: string; sortOrder: number };
 
+// A+ style enhanced content modules rendered on the product detail page.
+export type ContentBlockType = "HEADING_TEXT" | "IMAGE_TEXT" | "FEATURE_GRID" | "FULL_IMAGE";
+export type HeadingTextData = { title: string; body: string };
+export type ImageTextData = { title: string; body: string; layout: "image-left" | "image-right"; image: string };
+export type FeatureGridData = { title?: string; items: { title: string; body: string }[] };
+export type FullImageData = { caption?: string; image: string };
+export type ContentBlock =
+  | { id: string; productId: string; type: "HEADING_TEXT"; sortOrder: number; data: HeadingTextData }
+  | { id: string; productId: string; type: "IMAGE_TEXT"; sortOrder: number; data: ImageTextData }
+  | { id: string; productId: string; type: "FEATURE_GRID"; sortOrder: number; data: FeatureGridData }
+  | { id: string; productId: string; type: "FULL_IMAGE"; sortOrder: number; data: FullImageData };
+
 export type Product = {
   id: string;
   name: string;
@@ -26,6 +38,7 @@ export type Product = {
   category: Category;
   sizes: ProductSize[];
   images: ProductImage[];
+  contentBlocks?: ContentBlock[];
   createdAt: string;
 };
 
@@ -304,6 +317,26 @@ export function deleteCoupon(id: string) {
 
 export function deleteProductImage(productId: string, imageId: string) {
   return request<void>(`/products/${productId}/images/${imageId}`, { method: "DELETE" });
+}
+
+// A+ content blocks
+export function createContentBlock(productId: string, formData: FormData) {
+  return request<ContentBlock>(`/products/${productId}/content-blocks`, { method: "POST", body: formData });
+}
+export function updateContentBlock(productId: string, blockId: string, formData: FormData) {
+  return request<ContentBlock>(`/products/${productId}/content-blocks/${blockId}`, {
+    method: "PUT",
+    body: formData,
+  });
+}
+export function deleteContentBlock(productId: string, blockId: string) {
+  return request<void>(`/products/${productId}/content-blocks/${blockId}`, { method: "DELETE" });
+}
+export function reorderContentBlocks(productId: string, order: string[]) {
+  return request<void>(`/products/${productId}/content-blocks/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ order }),
+  });
 }
 
 // Reviews

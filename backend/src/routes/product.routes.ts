@@ -76,7 +76,12 @@ productRouter.get(
     const idOrSlug = requireParam(req.params.idOrSlug, "idOrSlug");
     const product = await prisma.product.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-      include: { category: true, sizes: true, images: true },
+      include: {
+        category: true,
+        sizes: true,
+        images: true,
+        contentBlocks: { orderBy: { sortOrder: "asc" } },
+      },
     });
     if (!product) throw new ApiError(404, "Product not found");
     return res.json(product);

@@ -1,5 +1,6 @@
 import AddToCartButton from "@/components/AddToCartButton";
 import PriceTag from "@/components/PriceTag";
+import ProductContentBlocks from "@/components/ProductContentBlocks";
 import ProductGallery from "@/components/ProductGallery";
 import ProductReviews from "@/components/ProductReviews";
 import { getProduct } from "@/lib/api";
@@ -14,7 +15,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <div>
           <small>{product.category?.name}</small>
           <h1>{product.name}</h1>
-          <p>{product.description}</p>
+          <div className="rich-text" dangerouslySetInnerHTML={{ __html: product.description }} />
           <div className="price"><PriceTag value={product.price} /></div>
           {product.sizes.length === 0 && (
             <p>{product.stock > 0 ? `${product.stock} items in stock` : "Out of stock"}</p>
@@ -22,6 +23,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           <AddToCartButton product={product} />
         </div>
       </main>
+      <ProductContentBlocks blocks={product.contentBlocks ?? []} />
       <div className="container">
         <ProductReviews productId={product.id} />
       </div>

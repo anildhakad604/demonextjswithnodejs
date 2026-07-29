@@ -13,6 +13,7 @@ import { adminRouter } from "./routes/admin.routes.js";
 import { webhookRouter } from "./routes/webhook.routes.js";
 import { reviewRouter } from "./routes/review.routes.js";
 import { wishlistRouter } from "./routes/wishlist.routes.js";
+import { contentBlockRouter } from "./routes/contentBlock.routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { UPLOADS_DIR } from "./middleware/upload.js";
 
@@ -48,6 +49,7 @@ app.use("/api/orders", orderRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api", reviewRouter);
 app.use("/api/wishlist", wishlistRouter);
+app.use("/api", contentBlockRouter);
 
 app.use(errorHandler);
 

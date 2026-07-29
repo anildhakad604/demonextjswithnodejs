@@ -101,8 +101,28 @@ model Product {
   images         ProductImage[]
   reviews        Review[]
   wishlistedBy   WishlistItem[]
+  contentBlocks  ProductContentBlock[]
 
   @@index([categoryId])
+}
+
+/// Amazon-style "A+" enhanced content: an ordered sequence of rich modules
+/// rendered on the product detail page below the standard description.
+/// ContentBlockType: "HEADING_TEXT" | "IMAGE_TEXT" | "FEATURE_GRID" | "FULL_IMAGE"
+/// `data` shape depends on type and is validated at the application layer
+/// (see backend/src/routes/contentBlock.routes.ts).
+model ProductContentBlock {
+  id        String   @id @default(uuid())
+  productId String
+  type      String
+  sortOrder Int      @default(0)
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 /// Additional gallery photos beyond the required cover `image`.

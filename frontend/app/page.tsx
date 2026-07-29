@@ -54,7 +54,13 @@ export default async function Home() {
       </section>
       <section id="products" className="section">
         <div className="container">
-          <Reveal><h2>Featured Products</h2></Reveal>
+          <Reveal>
+            <div className="section-heading">
+              <span className="eyebrow">Curated Picks</span>
+              <h2>Featured Products</h2>
+              <p>A selection of our most-loved pieces, chosen for everyday quality and lasting design.</p>
+            </div>
+          </Reveal>
           {products.length === 0 ? (
             <p className="muted">No products available yet.</p>
           ) : (

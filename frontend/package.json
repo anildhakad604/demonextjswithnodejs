@@ -8,9 +8,11 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-react": "^11.2.0",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "ckeditor5": "^48.3.1",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import RichTextEditor from "@/components/RichTextEditor";
 import {
   ApiRequestError,
   createProduct,
@@ -58,6 +59,8 @@ export default function ProductForm({ product }: { product?: Product }) {
     e.preventDefault();
     setError(null);
 
+    if (!description.replace(/<[^>]*>/g, "").trim()) return setError("Description is required.");
+
     if (hasSizes) {
       if (sizes.length === 0) return setError("Add at least one size, or turn off 'Sell by size'.");
       const labels = sizes.map((s) => s.size.trim().toUpperCase());
@@ -111,7 +114,7 @@ export default function ProductForm({ product }: { product?: Product }) {
       </div>
       <div className="field">
         <label>Description</label>
-        <textarea required value={description} onChange={(e) => setDescription(e.target.value)} />
+        <RichTextEditor value={description} onChange={setDescription} />
       </div>
       <div className="form-row">
         <div className="field">
