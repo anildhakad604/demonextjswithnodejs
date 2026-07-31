@@ -4,7 +4,11 @@ export const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 export function resolveImage(src: string): string {
   if (!src) return src;
   if (src.startsWith("http://") || src.startsWith("https://")) return src;
-  return `${API_ORIGIN}${src}`;
+  // Only backend-uploaded files live under /uploads on the API origin — other
+  // relative paths (e.g. seeded banner assets like /sweetynx/banners/...) are
+  // static files served by the frontend's own public/ folder, same origin.
+  if (src.startsWith("/uploads/")) return `${API_ORIGIN}${src}`;
+  return src;
 }
 
 export type SubCategory = { id: string; name: string; slug: string; categoryId: string };
