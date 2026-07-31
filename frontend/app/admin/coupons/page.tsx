@@ -17,6 +17,7 @@ export default function AdminCouponsPage() {
   const [discountType, setDiscountType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE");
   const [discountValue, setDiscountValue] = useState("10");
   const [minOrderValue, setMinOrderValue] = useState("0");
+  const [offerText, setOfferText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function load() {
@@ -34,10 +35,12 @@ export default function AdminCouponsPage() {
         discountType,
         discountValue: Number(discountValue),
         minOrderValue: Number(minOrderValue),
+        offerText: offerText || undefined,
       });
       setCode("");
       setDiscountValue("10");
       setMinOrderValue("0");
+      setOfferText("");
       load();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Unable to create coupon");
@@ -80,6 +83,15 @@ export default function AdminCouponsPage() {
         <div className="field">
           <label>Minimum order value (₹)</label>
           <input type="number" min={0} value={minOrderValue} onChange={(e) => setMinOrderValue(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Offer text (shown on product pages, optional)</label>
+          <input
+            maxLength={200}
+            placeholder="e.g. Get extra 10% off on prepaid orders"
+            value={offerText}
+            onChange={(e) => setOfferText(e.target.value)}
+          />
         </div>
         <button className="button" type="submit">Add coupon</button>
       </form>

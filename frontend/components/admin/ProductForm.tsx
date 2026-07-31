@@ -23,8 +23,15 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
   const [price, setPrice] = useState(product?.price || "");
+  const [actualPrice, setActualPrice] = useState(product?.actualPrice || "");
+  const [isFlashSale, setIsFlashSale] = useState(product?.isFlashSale ?? false);
+  const [isFastDelivery, setIsFastDelivery] = useState(product?.isFastDelivery ?? false);
+  const [colorGroupId, setColorGroupId] = useState(product?.colorGroupId || "");
+  const [colorName, setColorName] = useState(product?.colorName || "");
+  const [colorSwatchHex, setColorSwatchHex] = useState(product?.colorSwatchHex || "");
   const [stock, setStock] = useState(String(product?.stock ?? 0));
   const [categoryId, setCategoryId] = useState(product?.categoryId || "");
+  const [subCategoryId, setSubCategoryId] = useState(product?.subCategoryId || "");
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [image, setImage] = useState<File | null>(null);
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
@@ -74,7 +81,14 @@ export default function ProductForm({ product }: { product?: Product }) {
       formData.set("name", name);
       formData.set("description", description);
       formData.set("price", price);
+      if (actualPrice) formData.set("actualPrice", actualPrice);
+      formData.set("isFlashSale", String(isFlashSale));
+      formData.set("isFastDelivery", String(isFastDelivery));
+      if (colorGroupId) formData.set("colorGroupId", colorGroupId);
+      if (colorName) formData.set("colorName", colorName);
+      if (colorSwatchHex) formData.set("colorSwatchHex", colorSwatchHex);
       formData.set("categoryId", categoryId);
+      if (subCategoryId) formData.set("subCategoryId", subCategoryId);
       formData.set("isActive", String(isActive));
       if (image) formData.set("image", image);
       for (const file of galleryFiles) formData.append("gallery", file);
@@ -121,6 +135,10 @@ export default function ProductForm({ product }: { product?: Product }) {
           <label>Price (₹)</label>
           <input required type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
         </div>
+        <div className="field">
+          <label>Actual price (₹, optional — shows as strikethrough)</label>
+          <input type="number" min={0} step="0.01" value={actualPrice} onChange={(e) => setActualPrice(e.target.value)} />
+        </div>
         {!hasSizes && (
           <div className="field">
             <label>Stock</label>
@@ -128,13 +146,57 @@ export default function ProductForm({ product }: { product?: Product }) {
           </div>
         )}
       </div>
-      <div className="field">
-        <label>Category</label>
-        <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          {categories.map((cat) => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
+      <div className="form-row">
+        <div className="field">
+          <label>
+            <input type="checkbox" checked={isFlashSale} onChange={(e) => setIsFlashSale(e.target.checked)} /> Flash sale
+          </label>
+        </div>
+        <div className="field">
+          <label>
+            <input type="checkbox" checked={isFastDelivery} onChange={(e) => setIsFastDelivery(e.target.checked)} /> Fast delivery badge
+          </label>
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="field">
+          <label>Category</label>
+          <select
+            required
+            value={categoryId}
+            onChange={(e) => {
+              setCategoryId(e.target.value);
+              setSubCategoryId("");
+            }}
+          >
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label>Subcategory (optional)</label>
+          <select value={subCategoryId} onChange={(e) => setSubCategoryId(e.target.value)}>
+            <option value="">None</option>
+            {(categories.find((c) => c.id === categoryId)?.subCategories || []).map((sub) => (
+              <option key={sub.id} value={sub.id}>{sub.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="form-row">
+        <div className="field">
+          <label>Colour group ID (optional — same value across colour variants)</label>
+          <input placeholder="e.g. cotton-tee" value={colorGroupId} onChange={(e) => setColorGroupId(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Colour name</label>
+          <input placeholder="e.g. Navy" value={colorName} onChange={(e) => setColorName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Colour swatch hex</label>
+          <input placeholder="#1b2a4a" value={colorSwatchHex} onChange={(e) => setColorSwatchHex(e.target.value)} />
+        </div>
       </div>
       <div className="field">
         <label>Cover image {product ? "(leave blank to keep current)" : ""}</label>

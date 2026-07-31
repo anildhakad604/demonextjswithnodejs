@@ -10,6 +10,9 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<User>;
   register: (name: string, email: string, password: string) => Promise<User>;
   continueAsGuest: (name: string, email: string) => Promise<User>;
+  requestOtp: (phone: string) => Promise<{ message: string; resendSecondsLeft: number; devOtp?: string }>;
+  verifyOtp: (phone: string, code: string) => Promise<User>;
+  updateProfile: (name: string) => Promise<User>;
   logout: () => Promise<void>;
 };
 
@@ -45,13 +48,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return created;
   }, []);
 
+  const requestOtp = useCallback(async (phone: string) => {
+    return api.requestOtp(phone);
+  }, []);
+
+  const verifyOtp = useCallback(async (phone: string, code: string) => {
+    const loggedIn = await api.verifyOtp(phone, code);
+    setUser(loggedIn);
+    return loggedIn;
+  }, []);
+
+  const updateProfile = useCallback(async (name: string) => {
+    const updated = await api.updateProfile(name);
+    setUser(updated);
+    return updated;
+  }, []);
+
   const logout = useCallback(async () => {
     await api.logout();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, continueAsGuest, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, continueAsGuest, requestOtp, verifyOtp, updateProfile, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

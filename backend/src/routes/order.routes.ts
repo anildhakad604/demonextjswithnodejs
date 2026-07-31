@@ -192,3 +192,20 @@ orderRouter.get(
     return res.json(order);
   })
 );
+
+orderRouter.post(
+  "/:id/cancel",
+  asyncHandler(async (req, res) => {
+    const id = requireParam(req.params.id);
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order || order.userId !== req.user!.id) throw new ApiError(404, "Order not found");
+    // Only PENDING (unpaid) orders can be self-cancelled — once paid, stock
+    // has been decremented and coupon usage recorded, so that path goes
+    // through admin cancellation instead, which reverses both.
+    if (order.status !== "PENDING") {
+      throw new ApiError(400, "Only orders awaiting payment can be cancelled here");
+    }
+    const updated = await prisma.order.update({ where: { id }, data: { status: "CANCELLED" } });
+    return res.json(updated);
+  })
+);

@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { requireParam } from "../lib/params.js";
+import { upload } from "../middleware/upload.js";
 
 export const reviewRouter = Router();
 
@@ -41,17 +42,19 @@ const reviewSchema = z.object({
 reviewRouter.post(
   "/products/:productId/reviews",
   requireAuth,
+  upload.single("image"),
   asyncHandler(async (req, res) => {
     const productId = requireParam(req.params.productId, "productId");
     const { rating, comment } = reviewSchema.parse(req.body);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) throw new ApiError(404, "Product not found");
 
     const review = await prisma.review.upsert({
       where: { productId_userId: { productId, userId: req.user!.id } },
-      update: { rating, comment },
-      create: { productId, userId: req.user!.id, rating, comment },
+      update: { rating, comment, ...(imageUrl ? { imageUrl } : {}) },
+      create: { productId, userId: req.user!.id, rating, comment, imageUrl },
       include: { user: { select: { name: true } } },
     });
 

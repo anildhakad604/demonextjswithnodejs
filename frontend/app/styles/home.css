@@ -1,0 +1,209 @@
+/* ---------- Sweetynx-style homepage sections ---------- */
+
+.py-section {
+  padding: 36px 0;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.product-section-heading {
+  text-transform: capitalize;
+  font-weight: 400;
+  font-size: 24px;
+  margin: 0;
+  color: var(--ink);
+}
+
+@media (max-width: 767px) {
+  .product-section-heading {
+    font-size: 18px;
+  }
+}
+
+.product-section-heading.text-center {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.section-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* Hero */
+.hero-carousel {
+  line-height: 0;
+}
+
+.hero-slide-img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.hero-carousel .swiper-pagination-bullet-active {
+  background: #fff;
+}
+
+/* Product cards (flash sale / new arrivals) */
+/* Sweetynx's product cards are flat — no border/border-radius, just
+   padding, with a subtle zoom on the image on hover. */
+.product-card {
+  display: block;
+  position: relative;
+  padding: 12px;
+  background: #fff;
+  height: 100%;
+}
+
+.product-card .product-img-wrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: var(--muted);
+  overflow: hidden;
+}
+
+.product-card .product-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-img-wrap img {
+  transform: scale(1.05);
+}
+
+.flash-sale-discount-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--flash-badge);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.product-card .card-body {
+  padding: 0;
+  padding-top: 10px;
+  font-size: 15px;
+}
+
+.product-card .card-title {
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+.product-card .current-price {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.product-card .price-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.product-card .original-price {
+  text-decoration: line-through;
+  color: #a0a0a0;
+  font-size: 12px;
+}
+
+.product-card .off-percentage {
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Mid banner */
+.mid-banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Big category 2x2 grid */
+.big-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 32px auto;
+}
+
+.big-category-item {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.big-category-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: 1 / 1;
+}
+
+/* Shop by category cards */
+.category-card-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.category-card-item img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.category-card-item span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Celebs */
+.celeb-card img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Swiper nav arrow tweaks */
+.py-section .swiper-button-next,
+.py-section .swiper-button-prev {
+  color: var(--ink);
+  background: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.3);
+}
+
+.py-section .swiper-button-next::after,
+.py-section .swiper-button-prev::after {
+  font-size: 14px;
+}

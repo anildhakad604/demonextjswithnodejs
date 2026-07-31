@@ -20,26 +20,25 @@ export default function ProductGallery({
   const [active, setActive] = useState(0);
 
   return (
-    <div>
-      <div className="gallery-main">
-        <WishlistButton productId={productId} className="wishlist-btn-card" />
-        <Image src={resolveImage(allImages[active])} alt={alt} width={900} height={900} />
-      </div>
+    <div className={`gallery-wrapper ${allImages.length <= 1 ? "no-thumbs" : ""}`}>
       {allImages.length > 1 && (
-        <div className="gallery-thumbs">
+        <div className="thumb-rail">
           {allImages.map((url, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
             <button
               key={i}
               type="button"
-              className={`gallery-thumb ${i === active ? "active" : ""}`}
+              className={`thumb ${i === active ? "active" : ""}`}
               onClick={() => setActive(i)}
             >
-              <img src={resolveImage(url)} alt={`${alt} ${i + 1}`} />
+              <Image src={resolveImage(url)} alt={`${alt} ${i + 1}`} width={80} height={100} />
             </button>
           ))}
         </div>
       )}
+      <div className="main-image">
+        <WishlistButton productId={productId} className="wish gallery-wish" />
+        <Image src={resolveImage(allImages[active])} alt={alt} width={700} height={875} priority />
+      </div>
     </div>
   );
 }

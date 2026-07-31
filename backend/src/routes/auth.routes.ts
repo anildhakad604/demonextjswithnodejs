@@ -9,6 +9,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { authLimiter } from "../middleware/rateLimit.js";
 import { sendEmail } from "../lib/email.js";
 import { passwordResetEmail } from "../lib/emailTemplates.js";
+import { sendOtpSms, otpDebugValue } from "../lib/sms.js";
 import {
   signAccessToken,
   signRefreshToken,
@@ -113,6 +114,89 @@ authRouter.post(
   })
 );
 
+// --- Mobile + OTP login (customer-facing; admin still uses /login above) ---
+
+const OTP_LENGTH = 4;
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 30 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+
+function generateOtp(): string {
+  const max = 10 ** OTP_LENGTH;
+  return crypto.randomInt(0, max).toString().padStart(OTP_LENGTH, "0");
+}
+
+const phoneSchema = z.object({ phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number") });
+
+authRouter.post(
+  "/otp/request",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { phone } = phoneSchema.parse(req.body);
+
+    const recent = await prisma.otpCode.findFirst({ where: { phone }, orderBy: { createdAt: "desc" } });
+    if (recent && Date.now() - recent.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+      const secondsLeft = Math.ceil((OTP_RESEND_COOLDOWN_MS - (Date.now() - recent.createdAt.getTime())) / 1000);
+      throw new ApiError(429, `Please wait ${secondsLeft}s before requesting another code`);
+    }
+
+    const code = generateOtp();
+    await prisma.otpCode.create({
+      data: { phone, code, expiresAt: new Date(Date.now() + OTP_TTL_MS) },
+    });
+    await sendOtpSms(phone, code);
+
+    return res.json({
+      message: "OTP sent",
+      resendSecondsLeft: OTP_RESEND_COOLDOWN_MS / 1000,
+      // Only populated outside production — lets the flow be tested without
+      // a real SMS provider wired up. See lib/sms.ts.
+      devOtp: otpDebugValue(code),
+    });
+  })
+);
+
+const otpVerifySchema = z.object({
+  phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
+  code: z.string().length(OTP_LENGTH),
+});
+
+authRouter.post(
+  "/otp/verify",
+  authLimiter,
+  asyncHandler(async (req, res) => {
+    const { phone, code } = otpVerifySchema.parse(req.body);
+
+    const otp = await prisma.otpCode.findFirst({
+      where: { phone, consumedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!otp || otp.expiresAt < new Date()) throw new ApiError(400, "OTP has expired. Please request a new one.");
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+      throw new ApiError(429, "Too many incorrect attempts. Please request a new OTP.");
+    }
+    if (otp.code !== code) {
+      await prisma.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
+      throw new ApiError(400, "Incorrect OTP");
+    }
+
+    await prisma.otpCode.update({ where: { id: otp.id }, data: { consumedAt: new Date() } });
+
+    let user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      // First time this number has logged in — create a bare account the
+      // way Sweetynx does (name collected later from the "About You" tab).
+      const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
+      user = await prisma.user.create({
+        data: { name: `Customer ${phone.slice(-4)}`, email: `${phone}@phone.sweetynx.local`, phone, passwordHash },
+      });
+    }
+
+    await issueTokens(res, user.id, user.role);
+    return res.json({ id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role });
+  })
+);
+
 authRouter.post(
   "/refresh",
   asyncHandler(async (req, res) => {
@@ -159,7 +243,19 @@ authRouter.get(
   asyncHandler(async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
     if (!user) throw new ApiError(404, "User not found");
-    return res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    return res.json({ id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role });
+  })
+);
+
+const updateMeSchema = z.object({ name: z.string().min(2).max(100) });
+
+authRouter.patch(
+  "/me",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { name } = updateMeSchema.parse(req.body);
+    const user = await prisma.user.update({ where: { id: req.user!.id }, data: { name } });
+    return res.json({ id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role });
   })
 );
 

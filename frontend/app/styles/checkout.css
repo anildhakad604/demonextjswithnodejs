@@ -1,0 +1,133 @@
+/* ---------- Sweetynx-style Checkout page ---------- */
+
+.checkout-page {
+  padding: 32px 0 60px;
+}
+
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .checkout-grid {
+    grid-template-columns: 1.6fr 1fr;
+  }
+}
+
+.checkout-address-header {
+  margin-bottom: 16px;
+}
+
+.address-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink);
+}
+
+.address-card {
+  display: block;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.address-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.address-head input {
+  accent-color: var(--brand);
+}
+
+.address-line {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.8;
+  margin: 0 0 4px;
+}
+
+.address-add-lite {
+  border: 1px dashed var(--brand);
+  background: none;
+  color: var(--brand);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.new-address-form {
+  cursor: default;
+}
+
+.modal-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.modal-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.modal-field-stack input,
+.modal-row-two input {
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  width: 100%;
+}
+
+.coupon-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.coupon-row input {
+  flex: 1;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.coupon-apply {
+  border-radius: 0 4px 4px 0;
+  border: 1px solid #f3a3ab;
+  background: #f5b0b7;
+  color: #fff;
+  font-weight: 400;
+  font-size: 13px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.coupon-apply:hover {
+  background-color: #fb899f;
+  color: #fff;
+}
+
+.guest-checkout-form {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.guest-checkout-form .address-title {
+  text-align: center;
+  margin-bottom: 20px;
+}

@@ -1,0 +1,26 @@
+/*
+  Design tokens ported from Sweetynx's wwwroot/css/style.css. Kept separate
+  from the legacy NovaShop tokens (still defined in ../globals.css for the
+  admin panel and any page not yet rebuilt) so the two can coexist during
+  the phased storefront rebuild. --ink is the one name both systems use;
+  Sweetynx's value wins here since it's very close to the old one
+  (#2a2a2a vs #171310) and the storefront is the active redesign target.
+
+  --brand is corrected from the site's own :root value (#0d6efd — Bootstrap's
+  default blue, used almost nowhere in practice) to #ff236c, the color
+  actually used ~50+ times across every real CTA/button/badge/price-off/
+  hover state (add-to-bag, view-bag, purchase, login, off-badge, etc.) —
+  confirmed by frequency-counting hex colors across the real stylesheet.
+*/
+:root {
+  --brand: #ff236c;
+  --brand-hover: #ee5d76;
+  --brand-gradient: linear-gradient(180deg, #ff2f7b 0%, #ff1d6f 100%);
+  --nav-hover: #ff2f92;
+  --flash-badge: #d10000;
+  --blush: #f8d4d4;
+  --ink: #2a2a2a;
+  --muted: #f7f7f7;
+  --stroke: #ebebeb;
+  --soft: #fef2f2;
+}

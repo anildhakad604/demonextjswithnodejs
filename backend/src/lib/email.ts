@@ -37,7 +37,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
   try {
     const transporter = await getTransporter();
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"NovaShop" <no-reply@novashop.example>',
+      from: process.env.SMTP_FROM || '"SweetyNX" <no-reply@sweetynx.example>',
       to: opts.to,
       subject: opts.subject,
       html: opts.html,

@@ -1,7 +1,7 @@
 function layout(preheader: string, bodyHtml: string): string {
   return `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;color:#171717">
-    <h2 style="margin:0 0 4px;letter-spacing:-.02em">NovaShop</h2>
+    <h2 style="margin:0 0 4px;letter-spacing:-.02em">SweetyNX</h2>
     <p style="color:#777;margin:0 0 24px;font-size:13px">${preheader}</p>
     ${bodyHtml}
     <p style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:12px">
@@ -16,10 +16,10 @@ function button(url: string, label: string): string {
 
 export function passwordResetEmail(resetUrl: string): { subject: string; html: string } {
   return {
-    subject: "Reset your NovaShop password",
+    subject: "Reset your SweetyNX password",
     html: layout(
       "Reset your password",
-      `<p>We received a request to reset your NovaShop account password. This link expires in 1 hour.</p>
+      `<p>We received a request to reset your SweetyNX account password. This link expires in 1 hour.</p>
        ${button(resetUrl, "Reset Password")}
        <p style="font-size:12px;color:#999;word-break:break-all">Or paste this link into your browser: ${resetUrl}</p>`
     ),
@@ -73,6 +73,25 @@ export function orderStatusEmail(order: { id: string; total: string }, status: s
       `Order status: ${status}`,
       `<p>${message}</p>
        <p style="font-size:13px;color:#777">Order reference: #${order.id.slice(0, 8)} — Total ₹${Number(order.total).toLocaleString("en-IN")}</p>`
+    ),
+  };
+}
+
+export function contactMessageEmail(input: {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}): { subject: string; html: string } {
+  return {
+    subject: `New contact form message from ${input.name}`,
+    html: layout(
+      "Contact Us submission",
+      `<p><strong>Name:</strong> ${input.name}</p>
+       <p><strong>Email:</strong> ${input.email}</p>
+       ${input.phone ? `<p><strong>Phone:</strong> ${input.phone}</p>` : ""}
+       <p><strong>Message:</strong></p>
+       <p style="white-space:pre-wrap">${input.message}</p>`
     ),
   };
 }

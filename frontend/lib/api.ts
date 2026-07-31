@@ -7,7 +7,8 @@ export function resolveImage(src: string): string {
   return `${API_ORIGIN}${src}`;
 }
 
-export type Category = { id: string; name: string; slug: string };
+export type SubCategory = { id: string; name: string; slug: string; categoryId: string };
+export type Category = { id: string; name: string; slug: string; subCategories?: SubCategory[] };
 
 export type ProductSize = { id: string; size: string; stock: number };
 export type ProductImage = { id: string; url: string; sortOrder: number };
@@ -24,23 +25,56 @@ export type ContentBlock =
   | { id: string; productId: string; type: "FEATURE_GRID"; sortOrder: number; data: FeatureGridData }
   | { id: string; productId: string; type: "FULL_IMAGE"; sortOrder: number; data: FullImageData };
 
+// Products sharing a colorGroupId (Sweetynx models color variants as
+// sibling products, each with its own PDP page, rather than a dropdown).
+export type ColorVariant = {
+  id: string;
+  slug: string;
+  skuCode: string;
+  colorName: string | null;
+  colorSwatchHex: string | null;
+  image: string;
+};
+
 export type Product = {
   id: string;
   name: string;
   slug: string;
+  /// URL-facing short code — see getProductUrl().
+  skuCode: string;
   description: string;
   price: string;
+  /// Strikethrough "original" price shown alongside `price` when set.
+  actualPrice: string | null;
+  isFlashSale: boolean;
+  isFastDelivery: boolean;
+  colorGroupId: string | null;
+  colorName: string | null;
+  colorSwatchHex: string | null;
   image: string;
   stock: number;
   lowStockThreshold: number;
   isActive: boolean;
   categoryId: string;
   category: Category;
+  subCategoryId: string | null;
+  subCategory: SubCategory | null;
   sizes: ProductSize[];
   images: ProductImage[];
   contentBlocks?: ContentBlock[];
+  /// Only present on the single-product GET response.
+  colorVariants?: ColorVariant[];
   createdAt: string;
 };
+
+/// Canonical storefront URL for a product, matching Sweetynx's
+/// /{category}/{subcategory}/{sku} structure. Products without a
+/// subcategory fall back to "all" for that segment — the PDP route
+/// resolves by category + sku regardless of what's in the middle segment.
+export function getProductUrl(product: Product): string {
+  const subSlug = product.subCategory?.slug ?? "all";
+  return `/${product.category.slug}/${subSlug}/${product.skuCode}`;
+}
 
 export type Review = {
   id: string;
@@ -56,7 +90,7 @@ export type ReviewListResponse = { items: Review[]; averageRating: number; count
 
 export type ProductListResponse = { items: Product[]; total: number; page: number; limit: number; totalPages: number };
 
-export type User = { id: string; name: string; email: string; role: "USER" | "ADMIN" };
+export type User = { id: string; name: string; email: string; phone?: string | null; role: "USER" | "ADMIN" };
 
 export type Address = {
   id: string;
@@ -107,6 +141,7 @@ export type Coupon = {
   usedCount: number;
   expiresAt: string | null;
   isActive: boolean;
+  offerText: string | null;
 };
 
 export type WishlistItem = { id: string; productId: string; createdAt: string; product: Product };
@@ -149,12 +184,34 @@ async function request<T>(path: string, options: RequestInit = {}, retry = true)
 }
 
 // Products & categories
+export type ProductSort = "popular" | "new" | "discount" | "priceLow" | "priceHigh";
+
 export function getProducts(
-  params: { category?: string; search?: string; page?: number; limit?: number; includeInactive?: boolean } = {}
+  params: {
+    category?: string;
+    subCategory?: string;
+    search?: string;
+    size?: string;
+    color?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    isFlashSale?: boolean;
+    sort?: ProductSort;
+    page?: number;
+    limit?: number;
+    includeInactive?: boolean;
+  } = {}
 ) {
   const qs = new URLSearchParams();
   if (params.category) qs.set("category", params.category);
+  if (params.subCategory) qs.set("subCategory", params.subCategory);
   if (params.search) qs.set("search", params.search);
+  if (params.size) qs.set("size", params.size);
+  if (params.color) qs.set("color", params.color);
+  if (params.minPrice !== undefined) qs.set("minPrice", String(params.minPrice));
+  if (params.maxPrice !== undefined) qs.set("maxPrice", String(params.maxPrice));
+  if (params.isFlashSale) qs.set("isFlashSale", "true");
+  if (params.sort) qs.set("sort", params.sort);
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.includeInactive) qs.set("includeInactive", "true");
@@ -164,8 +221,39 @@ export function getProducts(
 export function getProduct(idOrSlug: string) {
   return request<Product>(`/products/${idOrSlug}`);
 }
+export type ProductFilters = {
+  sizes: string[];
+  colors: { name: string | null; hex: string | null }[];
+  subCategories: SubCategory[];
+  priceRange: { min: string | number; max: string | number };
+};
+export function getProductFilters(category?: string) {
+  const suffix = category ? `?category=${encodeURIComponent(category)}` : "";
+  return request<ProductFilters>(`/products/filters${suffix}`);
+}
 export function getCategories() {
   return request<Category[]>("/categories");
+}
+
+// Marketing content (homepage banners, top announcement bar)
+export type BannerType = "HERO" | "MID" | "BIG_CATEGORY" | "CATEGORY_CARD" | "CELEB" | "FASHION_VIDEO";
+export type Banner = {
+  id: string;
+  type: BannerType;
+  imageUrl: string;
+  linkUrl: string | null;
+  title: string | null;
+  sortOrder: number;
+  isActive: boolean;
+};
+export function getBanners(type?: BannerType) {
+  const suffix = type ? `?type=${type}` : "";
+  return request<Banner[]>(`/banners${suffix}`);
+}
+export type AnnouncementRecord = { id: string; text: string; isActive: boolean };
+export type Announcement = AnnouncementRecord | null;
+export function getAnnouncement() {
+  return request<Announcement>("/announcement");
 }
 
 // Auth
@@ -184,6 +272,9 @@ export function logout() {
 export function getMe() {
   return request<User>("/auth/me");
 }
+export function updateProfile(name: string) {
+  return request<User>("/auth/me", { method: "PATCH", body: JSON.stringify({ name }) });
+}
 export function forgotPassword(email: string) {
   return request<{ message: string }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
 }
@@ -192,6 +283,65 @@ export function resetPassword(token: string, password: string) {
     method: "POST",
     body: JSON.stringify({ token, password }),
   });
+}
+export function requestOtp(phone: string) {
+  return request<{ message: string; resendSecondsLeft: number; devOtp?: string }>("/auth/otp/request", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+}
+export function verifyOtp(phone: string, code: string) {
+  return request<User>("/auth/otp/verify", { method: "POST", body: JSON.stringify({ phone, code }) });
+}
+
+// Server-side cart
+export type ServerCartItem = {
+  id: string;
+  productId: string;
+  size: string | null;
+  quantity: number;
+  name: string;
+  slug: string;
+  skuCode: string;
+  price: string;
+  actualPrice: string | null;
+  image: string;
+  stock: number;
+  availableSizes: string[];
+};
+export type ServerCart = { items: ServerCartItem[]; count: number; subtotal: number };
+
+export function getCart() {
+  return request<ServerCart>("/cart");
+}
+export function addCartItem(input: { productId: string; size?: string; quantity?: number }) {
+  return request<ServerCart>("/cart/items", { method: "POST", body: JSON.stringify(input) });
+}
+export function updateCartItem(id: string, input: { quantity?: number; size?: string }) {
+  return request<ServerCart>(`/cart/items/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+}
+export function removeCartItem(id: string) {
+  return request<ServerCart>(`/cart/items/${id}`, { method: "DELETE" });
+}
+export function clearCart() {
+  return request<ServerCart>("/cart", { method: "DELETE" });
+}
+
+// Wallet & loyalty points ("Sweety Points")
+export type WalletTransaction = { id: string; amount: string; label: string; orderId: string | null; createdAt: string };
+export type Wallet = { balance: string; transactions: WalletTransaction[] };
+export function getWallet() {
+  return request<Wallet>("/wallet");
+}
+export type LoyaltyPointsTransaction = { id: string; points: number; label: string; orderId: string | null; createdAt: string };
+export type LoyaltyPoints = { balance: number; transactions: LoyaltyPointsTransaction[] };
+export function getLoyaltyPoints() {
+  return request<LoyaltyPoints>("/loyalty-points");
+}
+
+// Contact
+export function submitContact(input: { name: string; email: string; phone?: string; message: string }) {
+  return request<{ message: string }>("/contact", { method: "POST", body: JSON.stringify(input) });
 }
 
 // Addresses
@@ -206,6 +356,10 @@ export function deleteAddress(id: string) {
 }
 
 // Coupons
+export type ActiveCoupon = { code: string; discountType: "PERCENTAGE" | "FIXED"; discountValue: string; offerText: string | null } | null;
+export function getActiveCoupon() {
+  return request<ActiveCoupon>("/coupons/active");
+}
 export function validateCoupon(code: string, subtotal: number) {
   return request<{ id: string; code: string; discount: number; total: number }>("/coupons/validate", {
     method: "POST",
@@ -238,6 +392,9 @@ export function getMyOrders() {
 }
 export function getOrder(id: string) {
   return request<Order>(`/orders/${id}`);
+}
+export function cancelMyOrder(id: string) {
+  return request<Order>(`/orders/${id}/cancel`, { method: "POST" });
 }
 
 // Admin
@@ -276,6 +433,42 @@ export function deleteCategory(id: string) {
   return request<void>(`/categories/${id}`, { method: "DELETE" });
 }
 
+export function createSubCategory(name: string, categoryId: string) {
+  return request<SubCategory>("/subcategories", { method: "POST", body: JSON.stringify({ name, categoryId }) });
+}
+export function updateSubCategory(id: string, name: string) {
+  return request<SubCategory>(`/subcategories/${id}`, { method: "PUT", body: JSON.stringify({ name }) });
+}
+export function deleteSubCategory(id: string) {
+  return request<void>(`/subcategories/${id}`, { method: "DELETE" });
+}
+
+export function getAdminBanners() {
+  return request<Banner[]>("/banners/admin");
+}
+export function createBanner(formData: FormData) {
+  return request<Banner>("/banners", { method: "POST", body: formData });
+}
+export function updateBanner(id: string, formData: FormData) {
+  return request<Banner>(`/banners/${id}`, { method: "PUT", body: formData });
+}
+export function deleteBanner(id: string) {
+  return request<void>(`/banners/${id}`, { method: "DELETE" });
+}
+
+export function getAdminAnnouncements() {
+  return request<AnnouncementRecord[]>("/announcement/admin");
+}
+export function createAnnouncement(input: { text: string; isActive?: boolean }) {
+  return request<AnnouncementRecord>("/announcement", { method: "POST", body: JSON.stringify(input) });
+}
+export function updateAnnouncement(id: string, input: Partial<{ text: string; isActive: boolean }>) {
+  return request<AnnouncementRecord>(`/announcement/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+export function deleteAnnouncement(id: string) {
+  return request<void>(`/announcement/${id}`, { method: "DELETE" });
+}
+
 export function createProduct(formData: FormData) {
   return request<Product>("/products", { method: "POST", body: formData });
 }
@@ -305,10 +498,11 @@ export function createCoupon(input: {
   minOrderValue?: number;
   maxUses?: number;
   expiresAt?: string;
+  offerText?: string;
 }) {
   return request<Coupon>("/coupons", { method: "POST", body: JSON.stringify(input) });
 }
-export function updateCoupon(id: string, input: Partial<{ isActive: boolean }>) {
+export function updateCoupon(id: string, input: Partial<{ isActive: boolean; offerText: string }>) {
   return request<Coupon>(`/coupons/${id}`, { method: "PUT", body: JSON.stringify(input) });
 }
 export function deleteCoupon(id: string) {

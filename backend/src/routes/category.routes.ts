@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { requireParam } from "../lib/params.js";
+import { RESERVED_CATEGORY_SLUGS } from "../lib/reservedSlugs.js";
 
 export const categoryRouter = Router();
 
@@ -18,7 +19,10 @@ function slugify(input: string): string {
 categoryRouter.get(
   "/",
   asyncHandler(async (_req, res) => {
-    const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
+    const categories = await prisma.category.findMany({
+      orderBy: { name: "asc" },
+      include: { subCategories: { orderBy: { name: "asc" } } },
+    });
     return res.json(categories);
   })
 );
@@ -32,6 +36,9 @@ categoryRouter.post(
   asyncHandler(async (req, res) => {
     const { name } = createCategorySchema.parse(req.body);
     const slug = slugify(name);
+    if (RESERVED_CATEGORY_SLUGS.has(slug)) {
+      throw new ApiError(400, `"${name}" conflicts with a reserved page name — please choose another name`);
+    }
 
     const existing = await prisma.category.findFirst({ where: { OR: [{ name }, { slug }] } });
     if (existing) throw new ApiError(409, "Category already exists");
@@ -49,6 +56,9 @@ categoryRouter.put(
     const id = requireParam(req.params.id);
     const { name } = createCategorySchema.parse(req.body);
     const slug = slugify(name);
+    if (RESERVED_CATEGORY_SLUGS.has(slug)) {
+      throw new ApiError(400, `"${name}" conflicts with a reserved page name — please choose another name`);
+    }
     const category = await prisma.category
       .update({ where: { id }, data: { name, slug } })
       .catch(() => null);

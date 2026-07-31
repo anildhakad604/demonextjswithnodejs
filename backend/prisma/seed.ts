@@ -390,6 +390,27 @@ async function main() {
     categoryRecords[name] = category.id;
   }
 
+  // One subcategory grouping per category, matching Sweetynx's
+  // category → subcategory → product hierarchy used by the listing/PDP URLs.
+  const subCategoriesByCategory: Record<string, string[]> = {
+    Bags: ["Handbags", "Backpacks"],
+    Shoes: ["Sneakers", "Running"],
+    Accessories: ["Watches", "Sunglasses", "Wallets"],
+    Clothing: ["T-Shirts", "Jackets", "Jeans"],
+  };
+  const subCategoryRecords: Record<string, string> = {};
+  for (const [categoryName, names] of Object.entries(subCategoriesByCategory)) {
+    for (const name of names) {
+      const slug = slugify(name);
+      const subCategory = await prisma.subCategory.upsert({
+        where: { categoryId_slug: { categoryId: categoryRecords[categoryName], slug } },
+        update: {},
+        create: { categoryId: categoryRecords[categoryName], name, slug },
+      });
+      subCategoryRecords[name] = subCategory.id;
+    }
+  }
+
   const products = [
     {
       name: "Classic Leather Bag",
@@ -397,14 +418,19 @@ async function main() {
       price: 3499,
       image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=900&q=80",
       category: "Bags",
+      subCategory: "Handbags",
+      isFastDelivery: true,
       stock: 12,
     },
     {
       name: "Minimal Sneakers",
       description: "Comfortable minimalist sneakers for daily wear.",
       price: 2799,
+      actualPrice: 3299,
+      isFlashSale: true,
       image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
+      subCategory: "Sneakers",
       stock: 20,
       sizes: [
         { size: "7", stock: 6 },
@@ -419,14 +445,18 @@ async function main() {
       price: 4999,
       image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Watches",
       stock: 8,
     },
     {
       name: "Premium Sunglasses",
       description: "UV-protected sunglasses with a premium lightweight frame.",
       price: 1999,
+      actualPrice: 2499,
+      isFlashSale: true,
       image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Sunglasses",
       stock: 15,
     },
     {
@@ -435,14 +465,19 @@ async function main() {
       price: 2299,
       image: "https://images.unsplash.com/photo-1583300418584-8332e32b710e?auto=format&fit=crop&w=900&q=80",
       category: "Bags",
+      subCategory: "Backpacks",
+      isFastDelivery: true,
       stock: 18,
     },
     {
       name: "Canvas Tote Bag",
       description: "Spacious canvas tote for everyday errands and travel.",
       price: 2899,
+      actualPrice: 3299,
+      isFlashSale: true,
       image: "https://images.unsplash.com/photo-1568650108567-f040f546ce15?auto=format&fit=crop&w=900&q=80",
       category: "Bags",
+      subCategory: "Handbags",
       stock: 3,
     },
     {
@@ -451,6 +486,8 @@ async function main() {
       price: 3299,
       image: "https://images.unsplash.com/photo-1465453869711-7e174808ace9?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
+      subCategory: "Running",
+      isFastDelivery: true,
       stock: 25,
       sizes: [
         { size: "7", stock: 7 },
@@ -463,8 +500,10 @@ async function main() {
       name: "Colorblock Sneakers",
       description: "Statement colorblock sneakers with a cushioned sole.",
       price: 3799,
+      actualPrice: 4299,
       image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
+      subCategory: "Sneakers",
       stock: 14,
     },
     {
@@ -473,6 +512,7 @@ async function main() {
       price: 1899,
       image: "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
+      subCategory: "Sneakers",
       stock: 0,
     },
     {
@@ -481,6 +521,7 @@ async function main() {
       price: 2599,
       image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=900&q=80",
       category: "Shoes",
+      subCategory: "Sneakers",
       stock: 10,
     },
     {
@@ -489,6 +530,7 @@ async function main() {
       price: 5999,
       image: "https://images.unsplash.com/photo-1509941943102-10c232535736?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Watches",
       stock: 6,
     },
     {
@@ -497,6 +539,7 @@ async function main() {
       price: 3999,
       image: "https://images.unsplash.com/photo-1606387318469-bada9b642157?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Watches",
       stock: 9,
     },
     {
@@ -505,6 +548,7 @@ async function main() {
       price: 1599,
       image: "https://images.unsplash.com/photo-1610136649349-0f646f318053?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Sunglasses",
       stock: 22,
     },
     {
@@ -513,6 +557,7 @@ async function main() {
       price: 1299,
       image: "https://images.unsplash.com/photo-1620109176813-e91290f6c795?auto=format&fit=crop&w=900&q=80",
       category: "Accessories",
+      subCategory: "Wallets",
       stock: 30,
     },
     {
@@ -521,6 +566,10 @@ async function main() {
       price: 899,
       image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
+      subCategory: "T-Shirts",
+      colorGroupId: "cotton-tee",
+      colorName: "White",
+      colorSwatchHex: "#f5f5f0",
       stock: 40,
       sizes: [
         { size: "S", stock: 12 },
@@ -530,11 +579,48 @@ async function main() {
       ],
     },
     {
+      name: "Classic Cotton T-Shirt — Black",
+      description: "Breathable 100% cotton t-shirt with a relaxed fit, in black.",
+      price: 899,
+      image: "https://images.unsplash.com/photo-1503341504253-dff4815485f1?auto=format&fit=crop&w=900&q=80",
+      category: "Clothing",
+      subCategory: "T-Shirts",
+      colorGroupId: "cotton-tee",
+      colorName: "Black",
+      colorSwatchHex: "#111111",
+      stock: 25,
+      sizes: [
+        { size: "S", stock: 6 },
+        { size: "M", stock: 9 },
+        { size: "L", stock: 7 },
+        { size: "XL", stock: 3 },
+      ],
+    },
+    {
+      name: "Classic Cotton T-Shirt — Navy",
+      description: "Breathable 100% cotton t-shirt with a relaxed fit, in navy.",
+      price: 899,
+      image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=900&q=80",
+      category: "Clothing",
+      subCategory: "T-Shirts",
+      colorGroupId: "cotton-tee",
+      colorName: "Navy",
+      colorSwatchHex: "#1b2a4a",
+      stock: 18,
+      sizes: [
+        { size: "S", stock: 4 },
+        { size: "M", stock: 6 },
+        { size: "L", stock: 6 },
+        { size: "XL", stock: 2 },
+      ],
+    },
+    {
       name: "Denim Jacket",
       description: "Classic denim jacket with a button-front closure.",
       price: 3299,
       image: "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
+      subCategory: "Jackets",
       stock: 12,
       sizes: [
         { size: "S", stock: 4 },
@@ -549,6 +635,7 @@ async function main() {
       price: 1799,
       image: "https://images.unsplash.com/photo-1632073143817-8cd5b2165e20?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
+      subCategory: "Jackets",
       stock: 17,
       sizes: [
         { size: "S", stock: 5 },
@@ -563,6 +650,7 @@ async function main() {
       price: 2199,
       image: "https://images.unsplash.com/photo-1714143136372-ddaf8b606da7?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
+      subCategory: "Jeans",
       stock: 20,
       sizes: [
         { size: "30", stock: 6 },
@@ -577,6 +665,7 @@ async function main() {
       price: 3599,
       image: "https://images.unsplash.com/photo-1582494425482-c6dac37c8eeb?auto=format&fit=crop&w=900&q=80",
       category: "Clothing",
+      subCategory: "Jackets",
       stock: 4,
     },
   ];
@@ -597,23 +686,30 @@ async function main() {
     const slug = slugify(p.name);
     const sizes = "sizes" in p ? p.sizes : undefined;
     const stock = sizes ? sizes.reduce((sum, s) => sum + s.stock, 0) : p.stock;
+    const subCategoryId = "subCategory" in p ? subCategoryRecords[p.subCategory as string] : undefined;
+    const sharedFields = {
+      description: p.description,
+      price: p.price,
+      image: p.image,
+      categoryId: categoryRecords[p.category],
+      subCategoryId: subCategoryId ?? null,
+      actualPrice: "actualPrice" in p ? p.actualPrice : null,
+      isFlashSale: "isFlashSale" in p ? Boolean(p.isFlashSale) : false,
+      isFastDelivery: "isFastDelivery" in p ? Boolean(p.isFastDelivery) : false,
+      colorGroupId: "colorGroupId" in p ? p.colorGroupId : null,
+      colorName: "colorName" in p ? p.colorName : null,
+      colorSwatchHex: "colorSwatchHex" in p ? p.colorSwatchHex : null,
+    };
 
     const product = await prisma.product.upsert({
       where: { slug },
-      update: {
-        description: p.description,
-        price: p.price,
-        image: p.image,
-        categoryId: categoryRecords[p.category],
-      },
+      update: sharedFields,
       create: {
         name: p.name,
         slug,
-        description: p.description,
-        price: p.price,
-        image: p.image,
+        skuCode: slug,
         stock,
-        categoryId: categoryRecords[p.category],
+        ...sharedFields,
         ...(sizes ? { sizes: { create: sizes } } : {}),
       },
     });
@@ -651,15 +747,61 @@ async function main() {
 
   const coupon = await prisma.coupon.upsert({
     where: { code: "WELCOME10" },
-    update: {},
+    update: { offerText: "Get an extra 10% off on your first order" },
     create: {
       code: "WELCOME10",
       discountType: "PERCENTAGE",
       discountValue: 10,
       minOrderValue: 500,
       maxUses: 100,
+      offerText: "Get an extra 10% off on your first order",
     },
   });
+  await prisma.coupon.upsert({
+    where: { code: "FLAT200" },
+    update: { offerText: "Flat ₹200 off on orders above ₹2000" },
+    create: {
+      code: "FLAT200",
+      discountType: "FIXED",
+      discountValue: 200,
+      minOrderValue: 2000,
+      maxUses: 500,
+      offerText: "Flat ₹200 off on orders above ₹2000",
+    },
+  });
+
+  // Homepage marketing banners. Images are served from the frontend's own
+  // /public/sweetynx (copied from the Sweetynx reference site's wwwroot),
+  // not the backend's /uploads — the storefront renders these paths as-is.
+  const bannerSeeds: { type: string; imageUrl: string; title: string; sortOrder: number }[] = [
+    { type: "HERO", imageUrl: "/sweetynx/banners/banner1.png", title: "New Season Arrivals", sortOrder: 0 },
+    { type: "HERO", imageUrl: "/sweetynx/banners/banner2.png", title: "Festive Edit", sortOrder: 1 },
+    { type: "HERO", imageUrl: "/sweetynx/banners/FormalCollection.jpg", title: "Formal Collection", sortOrder: 2 },
+    { type: "MID", imageUrl: "/sweetynx/banners/SecondBanner.jpg", title: "Mid-season Sale", sortOrder: 0 },
+    { type: "BIG_CATEGORY", imageUrl: "/sweetynx/banners/shop1.png", title: "Shop Bags", sortOrder: 0 },
+    { type: "BIG_CATEGORY", imageUrl: "/sweetynx/banners/shop2.png", title: "Shop Shoes", sortOrder: 1 },
+    { type: "BIG_CATEGORY", imageUrl: "/sweetynx/banners/shop3.png", title: "Shop Accessories", sortOrder: 2 },
+    { type: "BIG_CATEGORY", imageUrl: "/sweetynx/banners/shop4.png", title: "Shop Clothing", sortOrder: 3 },
+    { type: "CATEGORY_CARD", imageUrl: "/sweetynx/banners/mid1.webp", title: "Bags", sortOrder: 0 },
+    { type: "CATEGORY_CARD", imageUrl: "/sweetynx/banners/mid2.png", title: "Shoes", sortOrder: 1 },
+    { type: "CATEGORY_CARD", imageUrl: "/sweetynx/banners/mid3.png", title: "Accessories", sortOrder: 2 },
+    { type: "CATEGORY_CARD", imageUrl: "/sweetynx/banners/mid4.png", title: "Clothing", sortOrder: 3 },
+    { type: "CELEB", imageUrl: "/sweetynx/banners/cele1.webp", title: "Celeb look 1", sortOrder: 0 },
+    { type: "CELEB", imageUrl: "/sweetynx/banners/cele2.webp", title: "Celeb look 2", sortOrder: 1 },
+    { type: "CELEB", imageUrl: "/sweetynx/banners/cele3.webp", title: "Celeb look 3", sortOrder: 2 },
+    { type: "CELEB", imageUrl: "/sweetynx/banners/cele4.webp", title: "Celeb look 4", sortOrder: 3 },
+  ];
+  for (const b of bannerSeeds) {
+    const existing = await prisma.banner.findFirst({ where: { type: b.type, imageUrl: b.imageUrl } });
+    if (!existing) await prisma.banner.create({ data: b });
+  }
+
+  const activeAnnouncement = await prisma.announcement.findFirst({ where: { isActive: true } });
+  if (!activeAnnouncement) {
+    await prisma.announcement.create({
+      data: { text: "FREE SHIPPING on prepaid orders above ₹999", isActive: true },
+    });
+  }
 
   console.log(`Seeded ${products.length} products, ${categories.length} categories, coupon ${coupon.code}`);
 }

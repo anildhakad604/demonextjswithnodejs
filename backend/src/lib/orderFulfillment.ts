@@ -64,6 +64,25 @@ export async function fulfillPaidOrder(
     if (order.couponId) {
       await tx.coupon.update({ where: { id: order.couponId }, data: { usedCount: { increment: 1 } } });
     }
+
+    // Loyalty accrual — 1 point per ₹100 spent (Sweetynx's "Sweety Points"),
+    // credited on payment the same way stock/coupon usage is.
+    const pointsEarned = Math.floor(Number(order.total) / 100);
+    if (pointsEarned > 0) {
+      const loyalty = await tx.loyaltyPoints.upsert({
+        where: { userId: order.userId },
+        update: { balance: { increment: pointsEarned } },
+        create: { userId: order.userId, balance: pointsEarned },
+      });
+      await tx.loyaltyPointsTransaction.create({
+        data: {
+          pointsId: loyalty.id,
+          points: pointsEarned,
+          label: "Order reward",
+          orderId: order.id,
+        },
+      });
+    }
   });
 
   const { subject, html } = orderConfirmationEmail({

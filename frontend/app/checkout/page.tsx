@@ -97,7 +97,6 @@ export default function CheckoutPage() {
   async function ensureAddress(): Promise<string> {
     if (!showNewAddress && addressId) return addressId;
     if (!showNewAddress && !addressId && addresses.length > 0) {
-      // Addresses loaded but none selected yet — pick the default or first one
       const fallback = addresses.find((a) => a.isDefault) || addresses[0];
       setAddressId(fallback.id);
       return fallback.id;
@@ -131,7 +130,7 @@ export default function CheckoutPage() {
         key: order.keyId,
         amount: order.amount,
         currency: order.currency,
-        name: "NovaShop",
+        name: "SweetyNX",
         description: "Order payment",
         order_id: order.razorpayOrderId,
         handler: async (response: {
@@ -148,7 +147,7 @@ export default function CheckoutPage() {
           }
         },
         prefill: { name: user?.name, email: user?.email },
-        theme: { color: "#111111" },
+        theme: { color: "#ff236c" },
       });
       razorpay.open();
     } catch (err) {
@@ -177,32 +176,41 @@ export default function CheckoutPage() {
 
   if (!user) {
     return (
-      <main className="container section auth-page">
-        <h1>Checkout</h1>
-        <form className="form" onSubmit={handleGuestContinue}>
-          {guestError && <p className="error-text">{guestError}</p>}
-          <p className="muted">Continue as a guest, or log in if you already have an account.</p>
-          <div className="field">
-            <label htmlFor="guestName">Full name</label>
-            <input id="guestName" required value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="guestEmail">Email</label>
-            <input
-              id="guestEmail"
-              type="email"
-              required
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-            />
-          </div>
-          <button className="button" type="submit" disabled={guestSubmitting}>
-            {guestSubmitting ? "Continuing..." : "Continue as Guest"}
-          </button>
-          <p className="muted">
-            Already have an account? <Link href="/login?next=/checkout">Login</Link>
-          </p>
-        </form>
+      <main className="checkout-page">
+        <div className="cart-progress main-container">
+          <span className="step">Shopping Bag</span>
+          <span className="dash" />
+          <span className="step active">Delivery Address</span>
+          <span className="dash" />
+          <span className="step">Payment</span>
+        </div>
+        <div className="main-container guest-checkout-form">
+          <h2 className="address-title">Continue to Checkout</h2>
+          <form className="form" onSubmit={handleGuestContinue}>
+            {guestError && <p className="error-text">{guestError}</p>}
+            <p className="muted">Continue as a guest, or log in if you already have an account.</p>
+            <div className="field">
+              <label htmlFor="guestName">Full name</label>
+              <input id="guestName" required value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="guestEmail">Email</label>
+              <input
+                id="guestEmail"
+                type="email"
+                required
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+              />
+            </div>
+            <button className="purchase-btn" type="submit" disabled={guestSubmitting}>
+              {guestSubmitting ? "Continuing..." : "Continue as Guest"}
+            </button>
+            <p className="muted" style={{ marginTop: 12 }}>
+              Already have an account? <Link href="/login?next=/checkout">Login</Link>
+            </p>
+          </form>
+        </div>
       </main>
     );
   }
@@ -214,113 +222,124 @@ export default function CheckoutPage() {
   return (
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
-      <main className="container section">
-        <h1>Checkout</h1>
-        {error && <p className="error-text">{error}</p>}
-
-        <h2>Shipping Address</h2>
-        {addresses.length > 0 && !showNewAddress && (
-          <div className="field">
-            <select value={addressId} onChange={(e) => setAddressId(e.target.value)}>
-              {addresses.map((addr) => (
-                <option key={addr.id} value={addr.id}>
-                  {addr.fullName} — {addr.line1}, {addr.city} ({addr.postalCode})
-                </option>
-              ))}
-            </select>
-            <button className="link-button" onClick={() => setShowNewAddress(true)}>
-              + Use a new address
-            </button>
-          </div>
-        )}
-        {showNewAddress && (
-          <div className="form form-wide">
-            <div className="form-row">
-              <div className="field">
-                <label>Full name</label>
-                <input value={newAddress.fullName} onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>Phone</label>
-                <input value={newAddress.phone} onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })} />
-              </div>
-            </div>
-            <div className="field">
-              <label>Address line 1</label>
-              <input value={newAddress.line1} onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })} />
-            </div>
-            <div className="field">
-              <label>Address line 2 (optional)</label>
-              <input value={newAddress.line2} onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })} />
-            </div>
-            <div className="form-row">
-              <div className="field">
-                <label>City</label>
-                <input value={newAddress.city} onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>State</label>
-                <input value={newAddress.state} onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })} />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="field">
-                <label>Postal code</label>
-                <input value={newAddress.postalCode} onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })} />
-              </div>
-              <div className="field">
-                <label>Country</label>
-                <input value={newAddress.country} onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })} />
-              </div>
-            </div>
-            {addresses.length > 0 && (
-              <button className="link-button" onClick={() => setShowNewAddress(false)}>
-                Use a saved address instead
-              </button>
-            )}
-          </div>
-        )}
-
-        <h2>Order Summary</h2>
-        {items.map((item) => (
-          <div className="summary-row" key={`${item.productId}::${item.size ?? ""}`}>
-            <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
-            <span>{format(Number(item.price) * item.quantity)}</span>
-          </div>
-        ))}
-
-        <div className="field" style={{ maxWidth: 320, marginTop: 16 }}>
-          <label>Coupon code</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={couponCode} onChange={(e) => setCouponCode(e.target.value)} />
-            <button className="button button-secondary button-sm" onClick={handleApplyCoupon} type="button">
-              Apply
-            </button>
-          </div>
-          {couponMessage && <p className="muted">{couponMessage}</p>}
+      <main className="checkout-page">
+        <div className="cart-progress main-container">
+          <span className="step">Shopping Bag</span>
+          <span className="dash" />
+          <span className="step active">Delivery Address</span>
+          <span className="dash" />
+          <span className="step">Payment</span>
         </div>
 
-        <div className="summary-row"><strong>Subtotal</strong><span>{format(subtotal)}</span></div>
-        {discount > 0 && <div className="summary-row"><strong>Discount</strong><span>-{format(discount)}</span></div>}
-        <div className="summary-row">
-          <strong>Shipping</strong>
-          <span>{shippingFee === 0 ? "Free" : format(shippingFee)}</span>
-        </div>
-        {shippingFee > 0 && (
-          <p className="muted">
-            Add {format(FREE_SHIPPING_THRESHOLD - afterDiscount)} more for free shipping
-          </p>
-        )}
-        <div className="summary-row"><strong>Total</strong><strong>{format(total)}</strong></div>
-        {currency !== "INR" && (
-          <p className="muted">
-            Shown in {currency} for reference — you&apos;ll be charged {formatINR(total)} (Indian Rupees) at checkout.
-          </p>
-        )}
+        <div className="main-container">
+          {error && <p className="error-text">{error}</p>}
 
-        <button className="button" onClick={handlePlaceOrder} disabled={submitting} style={{ marginTop: 16 }}>
-          {submitting ? "Processing..." : `Pay ${formatINR(total)}`}
-        </button>
+          <div className="checkout-grid">
+            <div className="address-area">
+              <div className="checkout-address-header">
+                <h2 className="address-title">Select Your Delivery Address</h2>
+              </div>
+
+              {addresses.length > 0 && !showNewAddress ? (
+                <>
+                  {addresses.map((addr) => (
+                    <label className="address-card" key={addr.id}>
+                      <div className="address-head">
+                        <input
+                          type="radio"
+                          name="address"
+                          checked={addressId === addr.id}
+                          onChange={() => setAddressId(addr.id)}
+                        />
+                        <strong>{addr.fullName}</strong>
+                      </div>
+                      <p className="address-line">
+                        {addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} - {addr.postalCode}
+                      </p>
+                      <p className="address-line">Phone: <span className="fw-bold">{addr.phone}</span></p>
+                    </label>
+                  ))}
+                  <button type="button" className="address-add-lite" onClick={() => setShowNewAddress(true)}>
+                    + Add New Address
+                  </button>
+                </>
+              ) : (
+                <div className="address-card new-address-form">
+                  <div className="modal-field-stack">
+                    <div className="modal-row-two">
+                      <input placeholder="Full Name" value={newAddress.fullName} onChange={(e) => setNewAddress({ ...newAddress, fullName: e.target.value })} />
+                      <input placeholder="Phone" value={newAddress.phone} onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })} />
+                    </div>
+                    <input placeholder="Address Line 1" value={newAddress.line1} onChange={(e) => setNewAddress({ ...newAddress, line1: e.target.value })} />
+                    <input placeholder="Address Line 2 (optional)" value={newAddress.line2} onChange={(e) => setNewAddress({ ...newAddress, line2: e.target.value })} />
+                    <div className="modal-row-two">
+                      <input placeholder="City" value={newAddress.city} onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })} />
+                      <input placeholder="State" value={newAddress.state} onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })} />
+                    </div>
+                    <div className="modal-row-two">
+                      <input placeholder="Postal Code" value={newAddress.postalCode} onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })} />
+                      <input placeholder="Country" value={newAddress.country} onChange={(e) => setNewAddress({ ...newAddress, country: e.target.value })} />
+                    </div>
+                  </div>
+                  {addresses.length > 0 && (
+                    <button type="button" className="address-add-lite" onClick={() => setShowNewAddress(false)}>
+                      Use a saved address instead
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <aside className="summary-area">
+              <div className="summary-card">
+                <h6 className="summary-title">Order Details</h6>
+                <hr />
+                {items.map((item) => (
+                  <div className="summary-line" key={`${item.productId}::${item.size ?? ""}`}>
+                    <span>{item.name}{item.size ? ` (${item.size})` : ""} × {item.quantity}</span>
+                    <span>{format(Number(item.price) * item.quantity)}</span>
+                  </div>
+                ))}
+
+                <div className="coupon-row">
+                  <input
+                    className="chip-select"
+                    placeholder="Coupon code"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                  />
+                  <button className="coupon-apply" onClick={handleApplyCoupon} type="button">Apply</button>
+                </div>
+                {couponMessage && <p className="muted">{couponMessage}</p>}
+
+                <hr />
+                <div className="summary-line"><span>Subtotal</span><span>{format(subtotal)}</span></div>
+                {discount > 0 && (
+                  <div className="summary-line text-success"><span>Coupon Discount</span><span>-{format(discount)}</span></div>
+                )}
+                <div className="summary-line text-success">
+                  <span>Delivery Charges</span>
+                  <span>{shippingFee === 0 ? "FREE" : format(shippingFee)}</span>
+                </div>
+                {shippingFee > 0 && (
+                  <p className="free-shipping-note">
+                    Add {format(FREE_SHIPPING_THRESHOLD - afterDiscount)} more for free shipping
+                  </p>
+                )}
+                <div className="summary-total"><span>Total Amount</span><span>{format(total)}</span></div>
+                {currency !== "INR" && (
+                  <p className="free-shipping-note">
+                    Shown in {currency} for reference — you&apos;ll be charged {formatINR(total)} (INR) at checkout.
+                  </p>
+                )}
+
+                <button className="purchase-btn" onClick={handlePlaceOrder} disabled={submitting}>
+                  {submitting ? "Processing..." : `Pay ${formatINR(total)}`}
+                </button>
+              </div>
+            </aside>
+          </div>
+        </div>
       </main>
     </>
   );

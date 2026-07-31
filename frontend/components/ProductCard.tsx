@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/api";
-import { resolveImage } from "@/lib/api";
+import { getProductUrl, resolveImage } from "@/lib/api";
 import { useCurrency } from "@/lib/currency-context";
 import WishlistButton from "@/components/WishlistButton";
 
@@ -12,7 +12,7 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <article className="card" style={{ position: "relative" }}>
       <WishlistButton productId={product.id} className="wishlist-btn-card" />
-      <Link href={`/products/${product.slug}`} style={{ display: "contents" }}>
+      <Link href={getProductUrl(product)} style={{ display: "contents" }}>
         <Image src={resolveImage(product.image)} alt={product.name} width={600} height={600} />
         <div className="card-body">
           <small>{product.category?.name}</small>

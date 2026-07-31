@@ -1,0 +1,79 @@
+/* ---------- Sweetynx-style Info / Support pages ---------- */
+
+.info-page {
+  max-width: 760px;
+}
+
+.info-page h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.info-page .rich-text h6 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 20px 0 8px;
+  color: var(--ink);
+}
+
+.info-page .rich-text p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  opacity: 0.85;
+  margin: 0 0 12px;
+}
+
+.contact-form {
+  max-width: 480px;
+  margin-top: 20px;
+}
+
+.faq-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.faq-tabs button {
+  border: 1px solid var(--stroke);
+  background: #fff;
+  border-radius: 100px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq-tabs button.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--stroke);
+  padding-bottom: 16px;
+}
+
+.faq-item strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.faq-item p {
+  font-size: 13px;
+  color: var(--ink);
+  opacity: 0.8;
+  margin: 0;
+  line-height: 1.6;
+}

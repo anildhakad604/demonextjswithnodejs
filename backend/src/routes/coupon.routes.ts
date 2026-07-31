@@ -17,6 +17,30 @@ export function computeDiscount(
   return Math.min(raw, subtotal);
 }
 
+// Public — powers the PDP/cart "offer card" (Sweetynx's Model.Coupon).
+// Only exposes what's safe to show pre-login: code + marketing copy, not
+// usage counts or admin metadata.
+couponRouter.get(
+  "/active",
+  asyncHandler(async (_req, res) => {
+    const coupon = await prisma.coupon.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
+        offerText: { not: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!coupon) return res.json(null);
+    return res.json({
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      offerText: coupon.offerText,
+    });
+  })
+);
+
 couponRouter.get(
   "/",
   requireAuth,
@@ -35,6 +59,8 @@ const createCouponSchema = z.object({
   maxUses: z.coerce.number().int().positive().optional(),
   expiresAt: z.coerce.date().optional(),
   isActive: z.coerce.boolean().optional(),
+  /// Marketing line shown on the PDP offer card (Sweetynx's OfferText).
+  offerText: z.string().max(200).optional(),
 });
 
 couponRouter.post(

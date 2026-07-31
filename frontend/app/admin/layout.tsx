@@ -12,12 +12,16 @@ import {
   OrdersIcon,
   ReviewsIcon,
   StoreLinkIcon,
+  BagIcon,
+  AlertIcon,
 } from "@/components/admin/icons";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: DashboardIcon, exact: true },
   { href: "/admin/products", label: "Products", icon: ProductsIcon },
   { href: "/admin/categories", label: "Categories", icon: CategoriesIcon },
+  { href: "/admin/banners", label: "Banners", icon: BagIcon },
+  { href: "/admin/announcements", label: "Announcements", icon: AlertIcon },
   { href: "/admin/coupons", label: "Coupons", icon: CouponsIcon },
   { href: "/admin/orders", label: "Orders", icon: OrdersIcon },
   { href: "/admin/reviews", label: "Reviews", icon: ReviewsIcon },
@@ -29,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!loading && (!user || user.role !== "ADMIN")) router.push("/login?next=/admin");
+    if (!loading && (!user || user.role !== "ADMIN")) router.push("/admin-login?next=/admin");
   }, [loading, user, router]);
 
   if (loading || !user || user.role !== "ADMIN") {
@@ -42,8 +46,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-mark">N</span>
-          NovaShop Admin
+          <span className="admin-brand-mark">S</span>
+          SweetyNX Admin
         </div>
         <nav className="admin-nav">
           {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {

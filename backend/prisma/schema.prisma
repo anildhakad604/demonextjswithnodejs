@@ -16,6 +16,7 @@ model User {
   id           String    @id @default(uuid())
   name         String
   email        String    @unique
+  phone        String?   @unique
   passwordHash String
   role         String    @default("USER")
   createdAt    DateTime  @default(now())
@@ -27,6 +28,23 @@ model User {
   passwordResetTokens PasswordResetToken[]
   reviews      Review[]
   wishlistItems WishlistItem[]
+  cart         Cart?
+  wallet       Wallet?
+  loyaltyPoints LoyaltyPoints?
+}
+
+/// A one-time code sent to a phone number for the customer-facing
+/// mobile+OTP login flow (admin login stays email+password, see auth.routes.ts).
+model OtpCode {
+  id         String    @id @default(uuid())
+  phone      String
+  code       String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([phone])
 }
 
 model RefreshToken {
@@ -73,18 +91,49 @@ model Address {
 }
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  slug     String    @unique
-  products Product[]
+  id            String        @id @default(uuid())
+  name          String        @unique
+  slug          String        @unique
+  products      Product[]
+  subCategories SubCategory[]
+}
+
+/// One level of category nesting, matching Sweetynx's category/subcategory
+/// listing hierarchy (e.g. Girls > Dresses). Optional — a product without a
+/// subCategoryId still belongs directly to its Category.
+model SubCategory {
+  id         String    @id @default(uuid())
+  categoryId String
+  name       String
+  slug       String
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  products   Product[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
 }
 
 model Product {
   id          String   @id @default(uuid())
   name        String
   slug        String   @unique
+  /// Short code used in the storefront URL (/{category}/{subcategory}/{skuCode}),
+  /// matching Sweetynx's SKU-based product URLs. Defaults to `slug` for
+  /// products created before this field existed.
+  skuCode     String   @unique
   description String
   price       Decimal  @db.Decimal(10, 2)
+  /// Strikethrough "original" price shown next to `price` when set —
+  /// Sweetynx's ActualPrice/OfferPrice pair.
+  actualPrice Decimal? @db.Decimal(10, 2)
+  isFlashSale Boolean  @default(false)
+  isFastDelivery Boolean @default(false)
+  /// Products sharing a colorGroupId are shown as color-swatch links to each
+  /// other on the PDP (Sweetynx models color variants as sibling products,
+  /// not a single product with a color dropdown).
+  colorGroupId   String?
+  colorName      String?
+  colorSwatchHex String?
   image       String
   stock       Int      @default(0)
   lowStockThreshold Int @default(5)
@@ -94,6 +143,8 @@ model Product {
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
+  subCategoryId String?
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
 
   orderItems     OrderItem[]
   stockMovements StockMovement[]
@@ -102,8 +153,12 @@ model Product {
   reviews        Review[]
   wishlistedBy   WishlistItem[]
   contentBlocks  ProductContentBlock[]
+  cartItems      CartItem[]
 
   @@index([categoryId])
+  @@index([subCategoryId])
+  @@index([colorGroupId])
+  @@index([isFlashSale])
 }
 
 /// Amazon-style "A+" enhanced content: an ordered sequence of rich modules
@@ -143,6 +198,8 @@ model Review {
   userId     String
   rating     Int
   comment    String
+  /// Customer-uploaded review photo (Sweetynx's ImagePath).
+  imageUrl   String?
   isApproved Boolean  @default(true)
   createdAt  DateTime @default(now())
 
@@ -210,9 +267,102 @@ model Coupon {
   usedCount     Int      @default(0)
   expiresAt     DateTime?
   isActive      Boolean  @default(true)
+  /// Free-text marketing line shown on the PDP offer card (Sweetynx's
+  /// Model.Coupon.OfferText), e.g. "Get extra 10% off on prepaid orders".
+  offerText     String?
   createdAt     DateTime @default(now())
 
   orders Order[]
+}
+
+/// A homepage/marketing image slot. `type` groups banners by placement:
+/// HERO | MID | BIG_CATEGORY | CATEGORY_CARD | CELEB | FASHION_VIDEO
+/// (validated at the application layer, see backend/src/routes/banner.routes.ts).
+model Banner {
+  id        String   @id @default(uuid())
+  type      String
+  imageUrl  String
+  linkUrl   String?
+  title     String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([type])
+}
+
+/// The single scrolling/top-bar announcement text (Sweetynx's TblAnnouncement).
+/// Only the most recent active row is shown.
+model Announcement {
+  id        String   @id @default(uuid())
+  text      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/// Server-persisted shopping cart, replacing the old localStorage cart so
+/// per-line size/quantity edits and coupons survive across devices/sessions
+/// the way Sweetynx's /Api/CartApi-backed cart does.
+model Cart {
+  id     String     @id @default(uuid())
+  userId String     @unique
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  productId String
+  size      String?
+  quantity  Int
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, size])
+  @@index([cartId])
+  @@index([productId])
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  balance      Decimal             @default(0) @db.Decimal(10, 2)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id        String   @id @default(uuid())
+  walletId  String
+  /// Signed: positive = credit, negative = debit.
+  amount    Decimal  @db.Decimal(10, 2)
+  label     String
+  orderId   String?
+  createdAt DateTime @default(now())
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+}
+
+model LoyaltyPoints {
+  id           String                     @id @default(uuid())
+  userId       String                     @unique
+  balance      Int                        @default(0)
+  user         User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyPointsTransaction[]
+}
+
+model LoyaltyPointsTransaction {
+  id        String        @id @default(uuid())
+  pointsId  String
+  points    Int
+  label     String
+  orderId   String?
+  createdAt DateTime      @default(now())
+  loyaltyPoints LoyaltyPoints @relation(fields: [pointsId], references: [id], onDelete: Cascade)
+
+  @@index([pointsId])
 }
 
 model Order {

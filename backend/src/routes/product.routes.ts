@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin, optionalAuth } from "../middleware/auth.js";
@@ -34,32 +35,69 @@ function parseSizes(raw: unknown): { size: string; stock: number }[] {
   return sizes;
 }
 
+const sortOptions = ["popular", "new", "discount", "priceLow", "priceHigh"] as const;
+
 const listQuerySchema = z.object({
   category: z.string().optional(),
+  subCategory: z.string().optional(),
   search: z.string().optional(),
+  size: z.string().optional(),
+  color: z.string().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  isFlashSale: z.coerce.boolean().optional(),
+  sort: z.enum(sortOptions).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   includeInactive: z.coerce.boolean().default(false),
 });
 
+const sortOrderByFor: Record<(typeof sortOptions)[number], Prisma.ProductOrderByWithRelationInput> = {
+  popular: { createdAt: "desc" },
+  new: { createdAt: "desc" },
+  discount: { actualPrice: "desc" },
+  priceLow: { price: "asc" },
+  priceHigh: { price: "desc" },
+};
+
 productRouter.get(
   "/",
   optionalAuth,
   asyncHandler(async (req, res) => {
-    const { category, search, page, limit, includeInactive } = listQuerySchema.parse(req.query);
+    const {
+      category,
+      subCategory,
+      search,
+      size,
+      color,
+      minPrice,
+      maxPrice,
+      isFlashSale,
+      sort,
+      page,
+      limit,
+      includeInactive,
+    } = listQuerySchema.parse(req.query);
     const canSeeInactive = includeInactive && req.user?.role === "ADMIN";
 
-    const where = {
+    const where: Prisma.ProductWhereInput = {
       ...(canSeeInactive ? {} : { isActive: true }),
       ...(category ? { category: { slug: category } } : {}),
+      ...(subCategory ? { subCategory: { slug: subCategory } } : {}),
       ...(search ? { name: { contains: search } } : {}),
+      ...(size ? { sizes: { some: { size } } } : {}),
+      ...(color ? { colorName: color } : {}),
+      ...(isFlashSale ? { isFlashSale: true } : {}),
+      ...(minPrice !== undefined || maxPrice !== undefined
+        ? { price: { ...(minPrice !== undefined ? { gte: minPrice } : {}), ...(maxPrice !== undefined ? { lte: maxPrice } : {}) } }
+        : {}),
     };
 
     const [items, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: { category: true, sizes: true, images: true },
-        orderBy: { createdAt: "desc" },
+        include: { category: true, subCategory: true, sizes: true, images: true },
+        orderBy: sortOrderByFor[sort ?? "popular"],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -70,21 +108,66 @@ productRouter.get(
   })
 );
 
+const filtersQuerySchema = z.object({ category: z.string().optional() });
+
+productRouter.get(
+  "/filters",
+  asyncHandler(async (req, res) => {
+    const { category } = filtersQuerySchema.parse(req.query);
+    const where: Prisma.ProductWhereInput = { isActive: true, ...(category ? { category: { slug: category } } : {}) };
+
+    const [sizes, colors, subCategories, priceAgg] = await Promise.all([
+      prisma.productSize.findMany({
+        where: { product: where },
+        select: { size: true },
+        distinct: ["size"],
+      }),
+      prisma.product.findMany({
+        where: { ...where, colorName: { not: null } },
+        select: { colorName: true, colorSwatchHex: true },
+        distinct: ["colorName"],
+      }),
+      prisma.subCategory.findMany({
+        where: category ? { category: { slug: category } } : {},
+        select: { id: true, name: true, slug: true },
+      }),
+      prisma.product.aggregate({ where, _min: { price: true }, _max: { price: true } }),
+    ]);
+
+    return res.json({
+      sizes: sizes.map((s) => s.size),
+      colors: colors.map((c) => ({ name: c.colorName, hex: c.colorSwatchHex })),
+      subCategories,
+      priceRange: { min: priceAgg._min.price ?? 0, max: priceAgg._max.price ?? 0 },
+    });
+  })
+);
+
 productRouter.get(
   "/:idOrSlug",
   asyncHandler(async (req, res) => {
     const idOrSlug = requireParam(req.params.idOrSlug, "idOrSlug");
     const product = await prisma.product.findFirst({
-      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }, { skuCode: idOrSlug }] },
       include: {
         category: true,
+        subCategory: true,
         sizes: true,
         images: true,
         contentBlocks: { orderBy: { sortOrder: "asc" } },
       },
     });
     if (!product) throw new ApiError(404, "Product not found");
-    return res.json(product);
+
+    const colorVariants = product.colorGroupId
+      ? await prisma.product.findMany({
+          where: { colorGroupId: product.colorGroupId, isActive: true },
+          select: { id: true, slug: true, skuCode: true, colorName: true, colorSwatchHex: true, image: true },
+          orderBy: { colorName: "asc" },
+        })
+      : [];
+
+    return res.json({ ...product, colorVariants });
   })
 );
 
@@ -92,8 +175,15 @@ const createProductSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().min(1),
   price: z.coerce.number().positive(),
+  actualPrice: z.coerce.number().positive().optional(),
+  isFlashSale: z.coerce.boolean().default(false),
+  isFastDelivery: z.coerce.boolean().default(false),
+  colorGroupId: z.string().max(100).optional(),
+  colorName: z.string().max(50).optional(),
+  colorSwatchHex: z.string().max(20).optional(),
   stock: z.coerce.number().int().min(0).default(0),
   categoryId: z.string().min(1),
+  subCategoryId: z.string().optional(),
   lowStockThreshold: z.coerce.number().int().min(0).default(5),
   isActive: z.coerce.boolean().default(true),
   sizes: z.string().optional(),
@@ -123,6 +213,12 @@ productRouter.post(
 
     const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
     if (!category) throw new ApiError(400, "Invalid category");
+    if (data.subCategoryId) {
+      const subCategory = await prisma.subCategory.findUnique({ where: { id: data.subCategoryId } });
+      if (!subCategory || subCategory.categoryId !== data.categoryId) {
+        throw new ApiError(400, "Invalid subcategory for the selected category");
+      }
+    }
 
     let slug = slugify(data.name);
     const existingSlug = await prisma.product.findUnique({ where: { slug } });
@@ -134,10 +230,18 @@ productRouter.post(
       data: {
         name: data.name,
         slug,
+        skuCode: slug,
         description: data.description,
         price: data.price,
+        actualPrice: data.actualPrice,
+        isFlashSale: data.isFlashSale,
+        isFastDelivery: data.isFastDelivery,
+        colorGroupId: data.colorGroupId,
+        colorName: data.colorName,
+        colorSwatchHex: data.colorSwatchHex,
         stock,
         categoryId: data.categoryId,
+        subCategoryId: data.subCategoryId,
         lowStockThreshold: data.lowStockThreshold,
         isActive: data.isActive,
         image: `/uploads/${coverImage.filename}`,
@@ -146,7 +250,7 @@ productRouter.post(
           ? { images: { create: galleryFiles.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i })) } }
           : {}),
       },
-      include: { sizes: true, category: true, images: true },
+      include: { sizes: true, category: true, subCategory: true, images: true },
     });
 
     if (sizes.length === 0 && data.stock > 0) {
@@ -177,6 +281,13 @@ productRouter.put(
     if (data.categoryId) {
       const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
       if (!category) throw new ApiError(400, "Invalid category");
+    }
+    if (data.subCategoryId) {
+      const subCategory = await prisma.subCategory.findUnique({ where: { id: data.subCategoryId } });
+      const categoryId = data.categoryId ?? existing.categoryId;
+      if (!subCategory || subCategory.categoryId !== categoryId) {
+        throw new ApiError(400, "Invalid subcategory for the selected category");
+      }
     }
 
     let slug = existing.slug;
@@ -221,7 +332,14 @@ productRouter.put(
         ...(data.name ? { name: data.name, slug } : {}),
         ...(data.description ? { description: data.description } : {}),
         ...(data.price !== undefined ? { price: data.price } : {}),
+        ...(data.actualPrice !== undefined ? { actualPrice: data.actualPrice } : {}),
+        ...(data.isFlashSale !== undefined ? { isFlashSale: data.isFlashSale } : {}),
+        ...(data.isFastDelivery !== undefined ? { isFastDelivery: data.isFastDelivery } : {}),
+        ...(data.colorGroupId !== undefined ? { colorGroupId: data.colorGroupId } : {}),
+        ...(data.colorName !== undefined ? { colorName: data.colorName } : {}),
+        ...(data.colorSwatchHex !== undefined ? { colorSwatchHex: data.colorSwatchHex } : {}),
         ...(data.categoryId ? { categoryId: data.categoryId } : {}),
+        ...(data.subCategoryId !== undefined ? { subCategoryId: data.subCategoryId } : {}),
         ...(data.lowStockThreshold !== undefined ? { lowStockThreshold: data.lowStockThreshold } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         ...(coverImage ? { image: `/uploads/${coverImage.filename}` } : {}),
@@ -230,7 +348,7 @@ productRouter.put(
           ? { images: { create: galleryFiles.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i })) } }
           : {}),
       },
-      include: { sizes: true, category: true, images: true },
+      include: { sizes: true, category: true, subCategory: true, images: true },
     });
 
     return res.json(product);

@@ -8,16 +8,23 @@ export default function AddToCartButton({ product }: { product: Product }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [showSizeAlert, setShowSizeAlert] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const hasSizes = product.sizes.length > 0;
   const selectedSizeStock = hasSizes
     ? product.sizes.find((s) => s.size === selectedSize)?.stock ?? null
     : product.stock;
   const outOfStock = hasSizes ? selectedSize !== null && selectedSizeStock === 0 : product.stock === 0;
-  const disabled = (hasSizes && !selectedSize) || outOfStock;
+  const maxQty = Math.min(hasSizes ? selectedSizeStock ?? 1 : product.stock, 10) || 1;
 
   function handleAdd() {
-    addItem(product, 1, selectedSize || undefined);
+    if (hasSizes && !selectedSize) {
+      setShowSizeAlert(true);
+      setTimeout(() => setShowSizeAlert(false), 2500);
+      return;
+    }
+    addItem(product, quantity, selectedSize || undefined);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
@@ -25,31 +32,46 @@ export default function AddToCartButton({ product }: { product: Product }) {
   return (
     <div>
       {hasSizes && (
-        <div className="field" style={{ maxWidth: 320, marginBottom: 16 }}>
-          <label>Size</label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="product-options-sizes">
+          <span className="section-label">Select Size</span>
+          <div className="size-chip-row">
             {product.sizes.map((s) => (
               <button
                 key={s.id}
                 type="button"
-                className={`button-sm ${selectedSize === s.size ? "button" : "button button-secondary"}`}
+                className={`size-chip ${selectedSize === s.size ? "active" : ""} ${s.stock === 0 ? "disabled" : ""}`}
                 disabled={s.stock === 0}
                 onClick={() => setSelectedSize(s.size)}
-                style={s.stock === 0 ? { opacity: 0.4, textDecoration: "line-through" } : undefined}
               >
                 {s.size}
               </button>
             ))}
           </div>
           {selectedSize && (
-            <p className="muted">
+            <p className="stock-note">
               {selectedSizeStock && selectedSizeStock > 0 ? `${selectedSizeStock} in stock` : "Out of stock"}
             </p>
           )}
+          {showSizeAlert && <p className="size-alert">Please select a size.</p>}
         </div>
       )}
-      <button className="button" onClick={handleAdd} disabled={disabled}>
-        {outOfStock ? "Out of stock" : hasSizes && !selectedSize ? "Select a size" : added ? "Added!" : "Add to Cart"}
+
+      <div className="product-options-quantity">
+        <span className="section-label">Quantity</span>
+        <div className="qty-control">
+          <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1}>
+            &minus;
+          </button>
+          <span>{quantity}</span>
+          <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty}>
+            +
+          </button>
+        </div>
+      </div>
+
+      <button className="add-to-bag" onClick={handleAdd} disabled={outOfStock}>
+        <i className="bi bi-handbag" />
+        {outOfStock ? "Out of stock" : added ? "Added to Bag" : "Add to Bag"}
       </button>
     </div>
   );
