@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -737,7 +737,7 @@ async function main() {
               productId: product.id,
               type,
               sortOrder: index,
-              data: data as Prisma.InputJsonValue,
+              data: JSON.stringify(data),
             };
           }),
         });

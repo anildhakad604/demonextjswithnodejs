@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlserver"
   url      = env("DATABASE_URL")
 }
 
@@ -142,9 +142,9 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   subCategoryId String?
-  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   orderItems     OrderItem[]
   stockMovements StockMovement[]
@@ -171,7 +171,10 @@ model ProductContentBlock {
   productId String
   type      String
   sortOrder Int      @default(0)
-  data      Json
+  /// JSON-serialized block payload — stored as text because SQL Server's
+  /// Prisma connector has no native Json type. Serialize/parse at the
+  /// application layer (see backend/src/routes/contentBlock.routes.ts).
+  data      String   @db.NVarChar(Max)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

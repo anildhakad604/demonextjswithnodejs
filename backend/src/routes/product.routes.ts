@@ -167,7 +167,11 @@ productRouter.get(
         })
       : [];
 
-    return res.json({ ...product, colorVariants });
+    return res.json({
+      ...product,
+      contentBlocks: product.contentBlocks.map((b) => ({ ...b, data: JSON.parse(b.data) })),
+      colorVariants,
+    });
   })
 );
 

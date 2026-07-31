@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
@@ -71,6 +70,12 @@ function buildBlockData(
   }
 }
 
+// `data` is stored as a JSON string (see schema.prisma); parse it back out
+// before handing a block to a caller so the API contract stays unchanged.
+function withParsedData<T extends { data: string }>(block: T): Omit<T, "data"> & { data: Record<string, unknown> } {
+  return { ...block, data: JSON.parse(block.data) as Record<string, unknown> };
+}
+
 const blockImageUpload = upload.fields([{ name: "image", maxCount: 1 }]);
 
 function imageOf(req: import("express").Request): Express.Multer.File | undefined {
@@ -104,11 +109,11 @@ contentBlockRouter.post(
       data: {
         productId,
         type,
-        data: data as Prisma.InputJsonValue,
+        data: JSON.stringify(data),
         sortOrder: (maxSortOrder._max.sortOrder ?? -1) + 1,
       },
     });
-    return res.status(201).json(block);
+    return res.status(201).json(withParsedData(block));
   })
 );
 
@@ -151,14 +156,14 @@ contentBlockRouter.put(
     if (!existing || existing.productId !== productId) throw new ApiError(404, "Content block not found");
 
     const effectiveType = (type ?? existing.type) as BlockType;
-    const existingData = effectiveType === existing.type ? (existing.data as Record<string, unknown>) : undefined;
+    const existingData = effectiveType === existing.type ? (JSON.parse(existing.data) as Record<string, unknown>) : undefined;
     const data = buildBlockData(effectiveType, req.body, imageOf(req), existingData);
 
     const block = await prisma.productContentBlock.update({
       where: { id: blockId },
-      data: { type: effectiveType, data: data as Prisma.InputJsonValue },
+      data: { type: effectiveType, data: JSON.stringify(data) },
     });
-    return res.json(block);
+    return res.json(withParsedData(block));
   })
 );
 
