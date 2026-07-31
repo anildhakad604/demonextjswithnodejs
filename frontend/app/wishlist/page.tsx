@@ -5,12 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useCurrency } from "@/lib/currency-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { getProductUrl, resolveImage } from "@/lib/api";
 
 export default function WishlistPage() {
   const { user, loading } = useAuth();
   const { items, loading: wishlistLoading, toggle } = useWishlist();
+  const { format } = useCurrency();
   const router = useRouter();
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export default function WishlistPage() {
                   <div className="wishlist-content">
                     <div className="wishlist-title">{product.name}</div>
                     <div className="price-box">
-                      <span className="offer">₹{Number(product.price).toFixed(0)}</span>
+                      <span className="offer">{format(product.price)}</span>
                       {product.actualPrice && (
-                        <span className="actual">₹{Number(product.actualPrice).toFixed(0)}</span>
+                        <span className="actual">{format(product.actualPrice)}</span>
                       )}
                     </div>
                     <div className="wishlist-actions">

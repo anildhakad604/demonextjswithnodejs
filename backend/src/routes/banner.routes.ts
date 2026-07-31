@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
-import { requireParam } from "../lib/params.js";
+import { requireParam, zBoolean } from "../lib/params.js";
 import { upload } from "../middleware/upload.js";
 
 export const bannerRouter = Router();
@@ -39,7 +39,7 @@ const createBannerSchema = z.object({
   linkUrl: z.string().max(300).optional(),
   title: z.string().max(150).optional(),
   sortOrder: z.coerce.number().int().min(0).default(0),
-  isActive: z.coerce.boolean().default(true),
+  isActive: zBoolean().default(true),
 });
 
 bannerRouter.post(
@@ -58,7 +58,18 @@ bannerRouter.post(
   })
 );
 
-const updateBannerSchema = createBannerSchema.partial();
+// Not createBannerSchema.partial() — .partial() only makes fields optional,
+// it does NOT strip .default(...): an absent field still gets coerced to
+// its create-time default and silently overwrites the existing value on
+// every partial update (e.g. toggling isActive alone would reset sortOrder
+// back to 0). Every field here uses .optional() with no default instead.
+const updateBannerSchema = z.object({
+  type: z.enum(BANNER_TYPES).optional(),
+  linkUrl: z.string().max(300).optional(),
+  title: z.string().max(150).optional(),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+  isActive: zBoolean().optional(),
+});
 
 bannerRouter.put(
   "/:id",

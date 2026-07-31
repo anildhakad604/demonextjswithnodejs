@@ -48,7 +48,7 @@ export default function CartPage() {
                     <div className="bag-price-row">
                       <span className="bag-price">{format(Number(item.price) * item.quantity)}</span>
                       {item.actualPrice && (
-                        <span className="price-discount">₹{Number(item.actualPrice).toFixed(0)}</span>
+                        <span className="price-discount">{format(Number(item.actualPrice) * item.quantity)}</span>
                       )}
                     </div>
                     <div className="chip-select-row">

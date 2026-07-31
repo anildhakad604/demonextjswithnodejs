@@ -60,7 +60,7 @@ export default async function ProductPage({ params }: { params: Promise<Params> 
             <span className="current-price"><PriceTag value={product.price} /></span>
             {product.actualPrice && (
               <>
-                <span className="old-price">₹{Number(product.actualPrice).toFixed(0)}</span>
+                <span className="old-price"><PriceTag value={product.actualPrice} /></span>
                 {discount > 0 && <span className="discount">(-{discount}% Off)</span>}
               </>
             )}

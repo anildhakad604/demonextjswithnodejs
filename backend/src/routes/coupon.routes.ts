@@ -77,13 +77,21 @@ couponRouter.post(
   })
 );
 
+// Not createCouponSchema.partial() directly — .partial() keeps .default(0)
+// active for minOrderValue, so any partial update omitting it (e.g. the
+// admin "Enable/Disable" toggle, which only sends isActive) would silently
+// reset minOrderValue back to 0. See the same fix in banner.routes.ts.
+const updateCouponSchema = createCouponSchema.partial().extend({
+  minOrderValue: z.coerce.number().min(0).optional(),
+});
+
 couponRouter.put(
   "/:id",
   requireAuth,
   requireAdmin,
   asyncHandler(async (req, res) => {
     const id = requireParam(req.params.id);
-    const data = createCouponSchema.partial().parse(req.body);
+    const data = updateCouponSchema.parse(req.body);
     const coupon = await prisma.coupon
       .update({ where: { id }, data })
       .catch(() => null);

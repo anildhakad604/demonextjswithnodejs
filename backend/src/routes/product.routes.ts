@@ -5,7 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin, optionalAuth } from "../middleware/auth.js";
 import { upload } from "../middleware/upload.js";
-import { requireParam } from "../lib/params.js";
+import { requireParam, zBoolean } from "../lib/params.js";
 
 export const productRouter = Router();
 
@@ -45,11 +45,11 @@ const listQuerySchema = z.object({
   color: z.string().optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
-  isFlashSale: z.coerce.boolean().optional(),
+  isFlashSale: zBoolean().optional(),
   sort: z.enum(sortOptions).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  includeInactive: z.coerce.boolean().default(false),
+  includeInactive: zBoolean().default(false),
 });
 
 const sortOrderByFor: Record<(typeof sortOptions)[number], Prisma.ProductOrderByWithRelationInput> = {
@@ -176,8 +176,8 @@ const createProductSchema = z.object({
   description: z.string().min(1),
   price: z.coerce.number().positive(),
   actualPrice: z.coerce.number().positive().optional(),
-  isFlashSale: z.coerce.boolean().default(false),
-  isFastDelivery: z.coerce.boolean().default(false),
+  isFlashSale: zBoolean().default(false),
+  isFastDelivery: zBoolean().default(false),
   colorGroupId: z.string().max(100).optional(),
   colorName: z.string().max(50).optional(),
   colorSwatchHex: z.string().max(20).optional(),
@@ -185,7 +185,7 @@ const createProductSchema = z.object({
   categoryId: z.string().min(1),
   subCategoryId: z.string().optional(),
   lowStockThreshold: z.coerce.number().int().min(0).default(5),
-  isActive: z.coerce.boolean().default(true),
+  isActive: zBoolean().default(true),
   sizes: z.string().optional(),
 });
 
@@ -263,7 +263,17 @@ productRouter.post(
   })
 );
 
-const updateProductSchema = createProductSchema.partial();
+// Not createProductSchema.partial() — see the comment on updateBannerSchema
+// in banner.routes.ts. Every field that had a .default(...) on create is
+// spelled out with plain .optional() here so an absent field means "leave
+// it alone", not "reset to the create-time default".
+const updateProductSchema = createProductSchema.partial().extend({
+  isFlashSale: zBoolean().optional(),
+  isFastDelivery: zBoolean().optional(),
+  stock: z.coerce.number().int().min(0).optional(),
+  lowStockThreshold: z.coerce.number().int().min(0).optional(),
+  isActive: zBoolean().optional(),
+});
 
 productRouter.put(
   "/:id",

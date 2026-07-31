@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { asyncHandler, ApiError } from "../middleware/errorHandler.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
-import { requireParam } from "../lib/params.js";
+import { requireParam, zBoolean } from "../lib/params.js";
 
 export const announcementRouter = Router();
 
@@ -30,7 +30,7 @@ announcementRouter.get(
 
 const createAnnouncementSchema = z.object({
   text: z.string().min(1).max(300),
-  isActive: z.coerce.boolean().default(true),
+  isActive: zBoolean().default(true),
 });
 
 announcementRouter.post(
@@ -49,7 +49,14 @@ announcementRouter.post(
   })
 );
 
-const updateAnnouncementSchema = createAnnouncementSchema.partial();
+// Not createAnnouncementSchema.partial() — see the note on updateBannerSchema
+// in banner.routes.ts; isActive has a .default(true) that would otherwise
+// resurrect a deactivated announcement whenever it's updated without
+// isActive explicitly present in the request body.
+const updateAnnouncementSchema = z.object({
+  text: z.string().min(1).max(300).optional(),
+  isActive: zBoolean().optional(),
+});
 
 announcementRouter.put(
   "/:id",

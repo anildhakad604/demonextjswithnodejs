@@ -5,6 +5,7 @@ import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import Carousel from "@/components/home/Carousel";
 import { getProductUrl, resolveImage, type Banner, type Category, type Product } from "@/lib/api";
+import { useCurrency } from "@/lib/currency-context";
 
 function matchCategorySlug(categories: Category[], title: string | null): string | null {
   if (!title) return null;
@@ -14,6 +15,7 @@ function matchCategorySlug(categories: Category[], title: string | null): string
 }
 
 function FlashSaleCard({ product }: { product: Product }) {
+  const { format } = useCurrency();
   const discount = product.actualPrice
     ? Math.round(100 - (Number(product.price) * 100) / Number(product.actualPrice))
     : 0;
@@ -25,13 +27,14 @@ function FlashSaleCard({ product }: { product: Product }) {
       </div>
       <div className="card-body">
         <h6 className="card-title">{product.name}</h6>
-        <div className="current-price">₹{Number(product.price).toFixed(0)}</div>
+        <div className="current-price">{format(product.price)}</div>
       </div>
     </Link>
   );
 }
 
 function NewArrivalCard({ product }: { product: Product }) {
+  const { format } = useCurrency();
   const discount = product.actualPrice
     ? Math.round(100 - (Number(product.price) * 100) / Number(product.actualPrice))
     : 0;
@@ -43,9 +46,9 @@ function NewArrivalCard({ product }: { product: Product }) {
       <div className="card-body">
         <h6 className="card-title">{product.name}</h6>
         <div className="price-container">
-          <span className="current-price">₹{Number(product.price).toFixed(0)}</span>
+          <span className="current-price">{format(product.price)}</span>
           {product.actualPrice && (
-            <span className="original-price">₹{Number(product.actualPrice).toFixed(0)}</span>
+            <span className="original-price">{format(product.actualPrice)}</span>
           )}
           {discount > 0 && <span className="off-percentage">{discount}% OFF</span>}
         </div>

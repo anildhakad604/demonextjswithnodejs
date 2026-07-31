@@ -1,8 +1,12 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { getProductUrl, resolveImage, type Product } from "@/lib/api";
+import { useCurrency } from "@/lib/currency-context";
 
 export default function ListingProductCard({ product }: { product: Product }) {
+  const { format } = useCurrency();
   const discount = product.actualPrice
     ? Math.round(100 - (Number(product.price) * 100) / Number(product.actualPrice))
     : 0;
@@ -16,8 +20,8 @@ export default function ListingProductCard({ product }: { product: Product }) {
       <div className="card-body">
         <p className="card-title">{product.name}</p>
         <div className="price-row">
-          <span className="current-price">₹{Number(product.price).toFixed(0)}</span>
-          {product.actualPrice && <span className="old-price">₹{Number(product.actualPrice).toFixed(0)}</span>}
+          <span className="current-price">{format(product.price)}</span>
+          {product.actualPrice && <span className="old-price">{format(product.actualPrice)}</span>}
         </div>
         {product.isFastDelivery && (
           <span className="fast-delivery-badge">
