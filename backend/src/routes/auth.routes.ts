@@ -24,7 +24,10 @@ const isProd = process.env.NODE_ENV === "production";
 const baseCookieOptions: CookieOptions = {
   httpOnly: true,
   secure: isProd,
-  sameSite: "lax",
+  // Frontend (Vercel) and backend (Render) are different domains in production,
+  // so the cookie must be sent cross-site — "none" requires "secure" to be set,
+  // which browsers enforce, hence it only applies once isProd is true.
+  sameSite: isProd ? "none" : "lax",
   path: "/",
 };
 
