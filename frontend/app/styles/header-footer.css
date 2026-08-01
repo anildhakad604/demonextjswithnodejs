@@ -14,7 +14,13 @@
   border-bottom: 1px solid var(--stroke);
   position: sticky;
   top: 0;
-  z-index: 100;
+  /* Must beat .mobile-nav-overlay's z-index (150) — that overlay is a JSX
+     sibling of <header>, not nested inside it, so it stacks against this
+     value directly. .main-nav.is-open's own z-index only wins locally
+     within this stacking context; if this is lower than the overlay's, the
+     overlay paints over the whole header (drawer included), silently
+     swallowing every tap on a nav link. */
+  z-index: 200;
 }
 
 /* The literal Sweetynx source has no max-width here (just 40px padding),
