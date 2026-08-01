@@ -197,6 +197,18 @@
   display: block;
 }
 
+/* This preview is a desktop-only :hover affordance. On touch devices a tap
+   can "stick" :hover with no matching leave event, leaving the panel open
+   with no way to dismiss it — and since it's positioned right:0 relative to
+   the cart icon (not the viewport), with icons to its right, it renders
+   mostly off-screen to the left. The cart icon already links straight to
+   /cart, so tapping it still works correctly with this disabled. */
+@media (max-width: 767px) {
+  .cart-parent:hover .cart-dropdown {
+    display: none;
+  }
+}
+
 .cart-dropdown-header h4 {
   font-size: 15px;
   margin: 0 0 10px;
