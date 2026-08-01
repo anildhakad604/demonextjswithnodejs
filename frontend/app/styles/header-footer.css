@@ -31,6 +31,21 @@
   .main-container {
     padding: 0 15px;
   }
+
+  /* The icon cluster (search/wishlist/cart/login/currency) doesn't fit
+     next to the logo on narrow screens — without this, flexbox has
+     nowhere else to take the space from and crushes the hamburger
+     button (the only child with a ~0 min-content size) down to 0px
+     instead. Letting it wrap to its own line keeps every control at
+     its real size and visible. */
+  .header-row {
+    flex-wrap: wrap;
+  }
+
+  .header-icons {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
 }
 
 .header-row {
@@ -69,6 +84,7 @@
   background: none;
   width: 32px;
   height: 24px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
